@@ -1,0 +1,28 @@
+
+# wordnet for action role names and some possible values that are not mapped to wordnet in PRAC
+
+
+# role names
+  
+amount: amount
+content: content
+device: device
+goal: goal
+liquid: liquid
+obj_to_be_heated:
+obj_to_be_opened:
+obj_to_be_pulled:
+obj_to_be_started:
+spice: spice
+stuff: stuff
+substance: substance
+temperature: temperature
+theme: theme
+unit: unit
+
+
+# role values 
+
+some: some
+null: null
+ 
