@@ -1,11 +1,12 @@
-# request 
+# request
 
-ActionCore[] action_cores
+ActionCore[] action_cores # each action core contains a list of action roles
+string plan  # plan name according to the last (executable) action core
 
 ---
 
 # response
 
 uint32 status
-string plan 
+
 

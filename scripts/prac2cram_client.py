@@ -38,9 +38,9 @@ import sys
 import os
 
 import rospy
-import std_msgs.msg 
+import std_msgs.msg
 
-# imports the service 
+# imports the service
 from prac2cram.srv import *
 # import the messages
 from prac2cram.msg import *
@@ -54,16 +54,14 @@ def prac2cram_client(action_cores):
     # block until the service is available
     # you can optionally specify a timeout
     rospy.wait_for_service('prac2cram')
-    
+
     try:
         # create a handle to the service
         prac2cram = rospy.ServiceProxy('prac2cram', Prac2Cram)
-        
+
         #h = std_msgs.msg.Header()
         #h.stamp = rospy.Time.now() # Note you need to call rospy.init_node() before this will work
-        
-        # TODO load wordnet mapping 
-        
+
         # simplified style
         resp1 = prac2cram(action_cores)
 
@@ -71,6 +69,7 @@ def prac2cram_client(action_cores):
         #resp2 = prac2cram.call(Prac2CramRequest(params))
 
         return resp1
+
     except rospy.ServiceException, e:
         print "Service call failed with the following error: %s" %e
 
@@ -79,31 +78,30 @@ def usage():
     return "Usage: %s fulltest or %s simpletest" %(scriptname, scriptname)
 
 if __name__ == "__main__":
-    
+
     argv = rospy.myargv()
 
     if len(argv) >= 2:
 
       if argv[1] == 'fulltest':
-      
-        print "full test not implemented yet!" #TODO load yaml test file 
-        
+
+        print "full test not implemented yet!" #TODO load yaml test file
+
       elif argv[1] == 'simpletest' or argv[1] == 'test':
-          
+
         core1 = ActionCore()
         core1.action_core_name = 'Starting'
-        # TODO WordNet Mapping 
-        # TODO catch null values 
+        # TODO catch null values
         core1.action_roles = [ActionRole(role_name='obj_to_be_started', role_value='centrifuge.n.01')]
-        
+
         core2 = ActionCore()
         core2.action_core_name = 'TurningOnElectricalDevice'
         core2.action_roles =  [ActionRole(role_name='device', role_value='centrifuge.n.01')]
-      
-        action_cores = [core1, core2]   
-        
+
+        action_cores = [core1, core2]
+
         print "\nResult for action cores \n%s: \n%s"%(action_cores, prac2cram_client(action_cores))
-        
+
       else: print usage()
 
     else: print usage()
