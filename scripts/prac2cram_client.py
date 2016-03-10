@@ -53,7 +53,7 @@ def prac2cram_client(action_cores):
 
     # block until the service is available
     # you can optionally specify a timeout
-    rospy.wait_for_service('prac2cram')
+    rospy.wait_for_service('prac2cram', timeout=5) #in sec
 
     try:
         # create a handle to the service
@@ -63,7 +63,7 @@ def prac2cram_client(action_cores):
         #h.stamp = rospy.Time.now() # Note you need to call rospy.init_node() before this will work
 
         # simplified style
-        resp1 = prac2cram(action_cores)
+        resp1 = prac2cram(action_cores, plan)
 
         # formal style
         #resp2 = prac2cram.call(Prac2CramRequest(params))

@@ -19,18 +19,6 @@ action_cores:
 
 ---
 
-action_cores:
-  - action_core_name: 'Starting'
-    action_roles:
-      - role_name: obj_to_be_started
-        role_value: centrifuge.n.01
-  - action_core_name: 'TurningOnElectricalDevice'
-    action_roles:
-      - role_name: device
-        role_value: centrifuge.n.01
-
----
-
 # null values? why here role name "goal" and in open ease "destination"?
 
 # Add some water to the purine.
