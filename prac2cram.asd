@@ -1,5 +1,5 @@
 (defsystem prac2cram
-    :depends-on (roslisp std_msgs-msg prac2cram-srv)
+    :depends-on (roslisp cram-language std_msgs-msg prac2cram-srv)
     :components
     ((:module "src"
               :components

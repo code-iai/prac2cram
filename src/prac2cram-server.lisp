@@ -1,9 +1,9 @@
 (in-package :prac2cram)
 
-;;; TODO: Fehler abfangen, make a plan with declare-goal and  def-goal for every action core that could arrive  and call the plan from the server and call it with a designator containing the action roles
-
+;;; TODO: call the plan with a designator containing the action roles
+;;; (subseq plan 0 (search " " plan))
 (def-service-callback Prac2Cram (action_cores plan)
-  (ros-info (basics-system) "Printing parameters: Action Cores: ~a  Plan: ~a" action_cores plan)
+  (ros-info (basics-system) "Printing parameters: Action Cores: ~a  Plan: ~a" action_cores  (subseq plan 0 (search " " plan)))
   (make-response :status 0))
 
 ;;; TODO params erklären
@@ -22,8 +22,30 @@
 ; pour-from-spice-jar
 ; use-spoon
 ; turn-on-device
-; use-measuring-cup
+; use-measuring-cup `
 ; use-pipette
+
+(cram-language-implementation:declare-goal
+     pour-from-container (action-cores-designator)
+    )
+
+(cram-language-implementation:def-goal
+    (pour-from-container action-cores-designator)
+    (roslisp:ros-info 'prac2cram "Plan called, will be executed now.!")
+    )
+
+
+(cram-language-implementation:declare-goal
+    use-pipette (action-cores-designator)
+    )
+
+(cram-language-implementation:def-goal
+    (use-pipette action-cores-designator)
+    (roslisp:ros-info 'prac2cram "Plan called, will be executed now.!")
+    )
+
+
+
 
 (cram-language-implementation:declare-goal
     unscrew (action-cores-designator)
@@ -51,16 +73,6 @@
 
 (cram-language-implementation:def-goal
     (open-door action-cores-designator)
-    (roslisp:ros-info 'prac2cram "Plan called, will be executed now.!")
-    )
-
-
-(cram-language-implementation:declare-goal
-     pour-from-container (action-cores-designator)
-    )
-
-(cram-language-implementation:def-goal
-    (pour-from-container action-cores-designator)
     (roslisp:ros-info 'prac2cram "Plan called, will be executed now.!")
     )
 
@@ -115,15 +127,7 @@
     )
 
 
-(cram-language-implementation:declare-goal
-    use-pipette (action-cores-designator)
 
-    )
-
-(cram-language-implementation:def-goal
-    (use-pipette action-cores-designator)
-    (roslisp:ros-info 'prac2cram "Plan called, will be executed now.!")
-    )
 
 
 
