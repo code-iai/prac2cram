@@ -4,7 +4,5 @@
     ((:module "src"
               :components
               ((:file "package")
-               (:file "talker" :depends-on ("package"))
-               (:file "listener" :depends-on ("package"))
                (:file "prac2cram-server" :depends-on ("package"))))))
 

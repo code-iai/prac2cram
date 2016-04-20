@@ -1,9 +1,9 @@
 
 # wordnet for action role names and some possible values that are not mapped to wordnet in PRAC
-
+# Work in progress
 
 # role names
-  
+
 amount: amount
 content: content
 device: device
@@ -21,8 +21,8 @@ theme: theme
 unit: unit
 
 
-# role values 
+# role values
 
 some: some
 null: null
- 
+

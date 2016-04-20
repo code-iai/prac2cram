@@ -63,12 +63,12 @@ def prac2cram_client(action_cores):
         #h.stamp = rospy.Time.now() # Note you need to call rospy.init_node() before this will work
 
         # simplified style
-        resp1 = prac2cram(action_cores)
+        response = prac2cram(action_cores)
 
         # formal style
         #resp2 = prac2cram.call(Prac2CramRequest(params))
 
-        return resp1
+        return response
 
     except rospy.ServiceException, e:
         print "Service call failed with the following error: %s" %e
@@ -91,9 +91,7 @@ if __name__ == "__main__":
 
         core1 = ActionCore()
         core1.action_core_name = 'Starting'
-        # TODO catch null values
         core1.action_roles = [ActionRole(role_name='obj_to_be_started', role_value='centrifuge.n.01')]
-
         core2 = ActionCore()
         core2.action_core_name = 'TurningOnElectricalDevice'
         core2.action_roles =  [ActionRole(role_name='device', role_value='centrifuge.n.01')]
