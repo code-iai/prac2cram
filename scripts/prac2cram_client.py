@@ -53,7 +53,12 @@ def prac2cram_client(action_cores):
 
     # block until the service is available
     # you can optionally specify a timeout
-    rospy.wait_for_service('prac2cram')
+    try:
+        rospy.wait_for_service('prac2cram', timeout = 5)
+    except rospy.ROSException, e:
+        print "Service call timed out! Please start the prac2cram service."
+        return
+
 
     try:
         # create a handle to the service
@@ -98,7 +103,10 @@ if __name__ == "__main__":
 
         action_cores = [core1, core2]
 
-        print "\nResult for action cores \n%s: \n%s"%(action_cores, prac2cram_client(action_cores))
+        result = prac2cram_client(action_cores)
+
+        if result:
+            print "\nResult for action cores \n%s: \n%s"%(action_cores, result)
 
       else: print usage()
 
