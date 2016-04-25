@@ -36,7 +36,7 @@
 
 import sys
 import os
-
+import yaml
 import rospy
 import std_msgs.msg
 
@@ -86,16 +86,18 @@ if __name__ == "__main__":
 
     argv = rospy.myargv()
 
+
     if len(argv) >= 2:
 
       if argv[1] == 'fulltest':
 
+        d = yaml.load(test_yaml)
+        print d
         print "full test not implemented yet!" #TODO load yaml test file
 
       elif argv[1] == 'simpletest' or argv[1] == 'test':
 
-        core1 = ActionCore()
-        core1.action_core_name = 'Starting'
+        core1 = ActionCore(action_core_name='Neutralizing')
         core1.action_roles = [ActionRole(role_name='obj_to_be_started', role_value='centrifuge.n.01')]
         core2 = ActionCore()
         core2.action_core_name = 'TurningOnElectricalDevice'
@@ -111,3 +113,36 @@ if __name__ == "__main__":
       else: print usage()
 
     else: print usage()
+
+
+test_yaml = """action_cores:
+          - action_core_name: 'Neutralizing'
+            action_roles:
+              - role_name: neutralizer
+                role_value: hydrofluoric_acid.n.01
+              - role_name: neutralizee
+                role_value: pyridine.n.01
+              - role_name: amount
+                role_value: four.n.01
+              - role_name: unit
+                role_value: drop.n.02
+          - action_core_name: 'Adding'
+            action_roles:
+              - role_name: theme
+                role_value: hydrofluoric_acid.n.01
+              - role_name: goal
+                role_value: pyridine.n.01
+              - role_name: amount
+                role_value: four.n.01
+              - role_name: unit
+                role_value: drop.n.02
+          - action_core_name: 'Pipetting'
+            action_roles:
+              - role_name: content
+                role_value: hydrofluoric_acid.n.01
+              - role_name: goal
+                role_value: pyridine.n.01
+              - role_name: amount
+                role_value: four.n.01
+              - role_name: unit
+                role_value: drop.n.02"""
