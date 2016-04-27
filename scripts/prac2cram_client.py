@@ -38,12 +38,11 @@ import sys
 import os
 import yaml
 import rospy
-import std_msgs.msg
 
 # imports the service
-from prac2cram.srv import *
+from prac2cram.srv import Prac2Cram
 # import the messages
-from prac2cram.msg import *
+from prac2cram.msg import ActionCore, ActionRole
 
 def prac2cram_client(action_cores):
 
