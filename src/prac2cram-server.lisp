@@ -65,11 +65,11 @@
   (roslisp:ros-info (basics-system) "Received service call with these parameters: Action Cores: ~a" action_cores)
 
   (if cpl:*task-tree*  ;; test if another cram plan is running; *task-tree* will be non-NIL if so
-    (roslisp:make-response :status 0 :message "Another cram plan is running. Wait for it to finish and send the request again.")
+    (roslisp:make-response :status -1 :message "Another cram plan is running. Wait for it to finish and send the request again.")
     (multiple-value-bind (plan-started plan-info) (find-and-start-plan action_cores)  ;; identify plan based on action_core_name
       (if plan-started
-        (make-response :status 1 :message (format nil "Started plan: ~a." plan-info))
-        (make-response :status 0 :message (format nil "No plan started: ~a." plan-info)))))
+        (make-response :status 0 :message (format nil "Started plan: ~a." plan-info))
+        (make-response :status -1 :message (format nil "No plan started: ~a." plan-info)))))
   )
 
 ; This is an example of what the server receives:
