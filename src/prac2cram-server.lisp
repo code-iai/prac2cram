@@ -126,7 +126,7 @@
     (setf *plan-matchings* plan-matchings)
        (roslisp:register-service "prac2cram" 
                                  'Prac2Cram)
-       (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query.")))
+       (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query. Known plan matchings ~a~%" *plan-matchings*)))
 
 
 
