@@ -22,6 +22,7 @@ add_message_files(
   FILES
   ActionRole.msg
   ActionCore.msg
+  Task.msg
 
 )
 

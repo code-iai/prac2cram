@@ -16,9 +16,10 @@ remote_server = rpc_client.get_proxy()
 #core2 = {'action_core_name': 'dbg-prac2cram', 'action_roles': [{'role_name': 'device', 'role_value': 'centrifuge.n.01'}]}
 core = {'action_core_name': 'use-pipette', 'action_roles': [{'role_name': 'content', 'role_value': 'phenolphtaleine'}, {'role_name': 'goal', 'role_value': 'purine'}, {'role_name': 'amount', 'role_value': '2'}, {'role_name': 'unit', 'role_value': 'drops'}]}
 action_cores = [core]
+tasks = [action_cores]
 
 # call a method called 'reverse_string' with a single string argument
-result = remote_server.prac2cram_client(action_cores)
+result = remote_server.prac2cram_client(tasks)
 
 print "Server answered:" 
 print result

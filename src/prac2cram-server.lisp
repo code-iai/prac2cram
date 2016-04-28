@@ -1,25 +1,5 @@
 (in-package :prac2cram)
 
-; This is an example of what the server receives:
-;  #([ACTIONCORE
-;   ACTION_CORE_NAME:
-;     Starting
-;   ACTION_ROLES:
-;     #([ACTIONROLE
-;          ROLE_NAME:
-;            obj_to_be_started
-;          ROLE_VALUE:
-;            centrifuge.n.01])]
-;[ACTIONCORE
-;   ACTION_CORE_NAME:
-;     TurningOnElectricalDevice
-;   ACTION_ROLES:
-;     #([ACTIONROLE
-;          ROLE_NAME:
-;            device
-;          ROLE_VALUE:
-;            centrifuge.n.01])])
-
 ;;; Make a test plan for debugging purposes.
 ;;; Note that for each plan we want prac2cram to be able to call we need:
 ;;;   the plan itself;
@@ -57,8 +37,6 @@
 
 (defparameter *plan-matchings* (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) nil))
 
-
-
 (defun start-plan (plan-fn args)
   (sb-thread:make-thread (lambda ()
                            (apply plan-fn args))))
@@ -84,30 +62,62 @@
                   (format nil "no plan found to match the action core ~a (known are ~a)" action-core-name plan-matchings)
                   ""))))))
 
-;;(lambda (req) 
-;;  (roslisp:with-fields (action_cores) req
-;;    (Prac2Cram action_cores plan-matchings)))
+(defun interpret-task (task plan-matchings)
+  (roslisp:with-fields ((action-cores action_cores)) task
+    (let* ((action-core (car (last (coerce action-cores 'list)))))
+      (roslisp:with-fields ((action-core-name action_core_name) (action-roles action_roles)) action-core
+        (let* ((action-roles (coerce action-roles 'list))
+               (matching-plan-data (cdr (assoc (format nil "~a" action-core-name) plan-matchings :test #'equal))))
+          (if matching-plan-data
+            (let* ((matching-plan-fn (first matching-plan-data))
+                   (matching-arg-fn (second matching-plan-data)))
+              (multiple-value-bind (should-start args message plan-string) (apply matching-arg-fn action-roles)
+                (list should-start message plan-string matching-plan-fn matching-arg-fn args)))
+            (list -1 (format nil "no plan found for action core ~a." action-core-name) "" nil nil nil)))))))
 
-(roslisp:def-service-callback Prac2Cram (action_cores)
-  (let* ((action-cores action_cores))
-  (roslisp:ros-info (basics-system) "Received service call with these parameters: Action Cores: ~a" action-cores)
-  (if cpl:*task-tree*  ;; test if another cram plan is running; *task-tree* will be non-NIL if so
-    (roslisp:make-response ;;"prac2cram/Prac2CramResponse" 
-                          :status -1
-                          :message "Another cram plan is running. Wait for it to finish and send the request again."
-                          :plan_string "")
-    (multiple-value-bind (plan-started plan-info plan-string) 
-                         (find-and-start-plan action-cores *plan-matchings*)  ;; identify plan based on action_core_name
-      (if plan-started
-        (roslisp:make-response ;;"prac2cram/Prac2CramResponse"
-                              :status 0 
-                              :message (format nil "Started plan: ~a." plan-info)
-                              :plan_string plan-string)
-        (roslisp:make-response ;;"prac2cram/Prac2CramResponse"
-                              :status -1 
-                              :message (format nil "No plan started: ~a." plan-info)
-                              :plan_string ""))))
-  ))
+(defun find-and-start-plans (tasks plan-matchings)
+  (let* ((plan-data (mapcar (lambda (task) 
+                              (interpret-task task plan-matchings))
+                            tasks))
+         (statuses (mapcar #'first plan-data))
+         (messages (mapcar #'second plan-data))
+         (plan-strings (mapcar #'third plan-data))
+         (plan-fns (mapcar #'fourth plan-data))
+         (plan-arg-fns (mapcar #'fifth plan-data))
+         (args-list (mapcar #'sixth plan-data))
+         (started (if (member -1 statuses) -1 0)))
+    (if (equal started 0)
+      (sb-thread:make-thread (lambda ()
+                               (mapcar (lambda (plan-fn plan-arg-fn args)
+                                         ;; in the future, compute arguments for a plan just before running it.
+                                         (declare (ignore plan-arg-fn))
+                                         (apply plan-fn args))
+                                       plan-fns plan-arg-fns args-list))))
+    (values started statuses messages plan-strings)))
+
+;;(lambda (req) 
+;;  (roslisp:with-fields (tasks) req
+;;    (Prac2Cram tasks plan-matchings)))
+
+(roslisp:def-service-callback Prac2Cram (tasks)
+  (let* ((tasks (coerce tasks 'list)))
+    (roslisp:ros-info (basics-system) "Received service call with these parameters: Tasks: ~a" tasks)
+    (if cpl:*task-tree*   ;; test if another cram plan is running; *task-tree* will be non-NIL if so
+      (roslisp:make-response :status -1
+                             :individual_status (vector)
+                             :messages (vector "Another cram plan is running. Wait for it to finish and send the request again.")
+                             :plan_strings (vector ))
+      (multiple-value-bind (plan-started statuses messages plan-strings)
+                           (find-and-start-plans tasks *plan-matchings*)  ;; identify plan based on action_core_name
+        (if plan-started
+          (roslisp:make-response :status 0
+                                 :individual_status (coerce statuses 'list)
+                                 :messages (coerce messages 'list)
+                                 :plan_strings (coerce plan-strings 'list)
+          (roslisp:make-response :status -1
+                                 :individual_status (coerce statuses 'list)
+                                 :messages (coerce messages 'list)
+                                 :plan_strings (coerce plan-strings 'list))))))))
 
 
 (defun prac2cram-server (plan-matchings)

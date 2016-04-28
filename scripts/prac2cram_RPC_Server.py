@@ -77,11 +77,23 @@ def getROSActionCores(action_cores_RPC):
     action_cores_ROS.append(action_core_ROS)
   return action_cores_ROS
 
+def getROSTasks(tasks_RPC):
+  tasks_ROS = []
+  for task in tasks_RPC:
+    tasks_ROS.append(Task(action_cores = getROSActionCores(task)))
+  return tasks_ROS
+
+def getStringList(strings_ROS):
+  strings_RPC = []
+  for string in strings_ROS:
+    strings_RPC.append(string)
+  return strings_RPC
+
 @dispatcher.public
-def prac2cram_client(action_cores_RPC):
+def prac2cram_client(tasks_RPC):
 
     # Maybe not needed, since the members have the same names, but better safe etc.
-    action_cores = getROSActionCores(action_cores_RPC)
+    tasks_ROS = getROSTasks(tasks_RPC)
 
     # NOTE: you don't have to call rospy.init_node() to make calls against
     # a service. This is because service clients do not have to be
@@ -99,12 +111,12 @@ def prac2cram_client(action_cores_RPC):
         #h.stamp = rospy.Time.now() # Note you need to call rospy.init_node() before this will work
 
         # simplified style
-        response = prac2cram(action_cores)
+        response = prac2cram(tasks_ROS)
 
         # formal style
         #resp2 = prac2cram.call(Prac2CramRequest(params))
 
-        return {'status': response.status, 'message': response.message, 'plan_string': response.plan_string}
+        return {'status': response.status, 'messages': getStringList(response.messages), 'plan_strings': getStringList(response.plan_strings)}
 
     except rospy.ServiceException, e:
         print "Service call failed with the following error: %s" %e
