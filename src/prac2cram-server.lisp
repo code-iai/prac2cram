@@ -113,11 +113,11 @@
           (roslisp:make-response :status 0
                                  :individual_status (coerce statuses 'list)
                                  :messages (coerce messages 'list)
-                                 :plan_strings (coerce plan-strings 'list)
+                                 :plan_strings (coerce plan-strings 'list))
           (roslisp:make-response :status -1
                                  :individual_status (coerce statuses 'list)
                                  :messages (coerce messages 'list)
-                                 :plan_strings (coerce plan-strings 'list))))))))
+                                 :plan_strings (coerce plan-strings 'list)))))))
 
 
 (defun prac2cram-server (plan-matchings)
