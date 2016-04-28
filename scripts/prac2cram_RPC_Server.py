@@ -33,15 +33,16 @@
 #
 # Revision $Id$
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+import sys
+import os
 
 import rospy
+import std_msgs.msg
 
 # imports the service
-from prac2cram.srv import Prac2Cram
+from prac2cram.srv import *
 # import the messages
-from prac2cram.msg import ActionCore, ActionRole
+from prac2cram.msg import *
 
 import gevent
 import gevent.wsgi
@@ -55,7 +56,7 @@ dispatcher = RPCDispatcher()
 transport = WsgiServerTransport(queue_class=gevent.queue.Queue)
 
 # start wsgi server as a background-greenlet
-wsgi_server = gevent.wsgi.WSGIServer(('127.0.0.1', 5050), transport.handle)
+wsgi_server = gevent.wsgi.WSGIServer(('0.0.0.0', 5050), transport.handle)
 gevent.spawn(wsgi_server.serve_forever)
 
 rpc_server = RPCServerGreenlets(
@@ -88,32 +89,22 @@ def prac2cram_client(action_cores_RPC):
 
     # block until the service is available
     # you can optionally specify a timeout
-    try:
-        rospy.wait_for_service('prac2cram', timeout = 3)
-    except rospy.ROSException, e:
-        message = "Service call timed out! Please start the prac2cram service."
-        logging.error(message)
-        return {'status': -1, 'message': message}
-
+    rospy.wait_for_service('prac2cram')
 
     try:
         # create a handle to the service
         prac2cram = rospy.ServiceProxy('prac2cram', Prac2Cram)
 
-        # we cdon't need a header for the moment
-        #h = std_msgs.msg.Header() 
+        #h = std_msgs.msg.Header()
         #h.stamp = rospy.Time.now() # Note you need to call rospy.init_node() before this will work
 
+        # simplified style
         response = prac2cram(action_cores)
-        logging.info("Response: %s" %response)
-        logging.info("Type of Response: %s" %type(response))
 
-        # the ROS Service response is not JSON serializable so transform it into simple dictionary
-        json_response = {}
-        json_response['status'] = response.status
-        json_response['message'] = response.message
+        # formal style
+        #resp2 = prac2cram.call(Prac2CramRequest(params))
 
-        return json_response
+        return {'status': response.status, 'message': response.message, 'plan_string': response.plan_string}
 
     except rospy.ServiceException, e:
         print "Service call failed with the following error: %s" %e

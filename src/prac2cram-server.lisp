@@ -1,5 +1,25 @@
 (in-package :prac2cram)
 
+; This is an example of what the server receives:
+;  #([ACTIONCORE
+;   ACTION_CORE_NAME:
+;     Starting
+;   ACTION_ROLES:
+;     #([ACTIONROLE
+;          ROLE_NAME:
+;            obj_to_be_started
+;          ROLE_VALUE:
+;            centrifuge.n.01])]
+;[ACTIONCORE
+;   ACTION_CORE_NAME:
+;     TurningOnElectricalDevice
+;   ACTION_ROLES:
+;     #([ACTIONROLE
+;          ROLE_NAME:
+;            device
+;          ROLE_VALUE:
+;            centrifuge.n.01])])
+
 ;;; Make a test plan for debugging purposes.
 ;;; Note that for each plan we want prac2cram to be able to call we need:
 ;;;   the plan itself;
@@ -22,94 +42,81 @@
     (if (equal action-role-count 1)
       (if (equal "test-flag" (car (car action-roles)))
         (values T
-                (desig:make-designator 'object (list (list 'test-flag (second (car action-roles)))))
-                (format nil "test-plan with parameter obj-desig:((test-flag ~a))" (second (car action-roles))))
-        (values nil nil (format nil "expected test-flag as action role, instead got ~a" (car (car action-roles)))))
-      (values nil nil (format nil "expected exactly one role, got ~a" action-role-count)))))
+                (list (desig:make-designator 'object (list (list 'test-flag (second (car action-roles))))))
+                (format nil "test-plan with parameter obj-desig:((test-flag ~a))" (second (car action-roles)))
+                (format nil "(testplan (test-flag ~a))" (second (car action-roles))))
+        (values nil 
+                nil 
+                (format nil "expected test-flag as action role, instead got ~a" (car (car action-roles)))
+                (format nil "")))
+      (values nil 
+              nil
+              (format nil "expected exactly one role, got ~a" action-role-count)
+              (format nil "")))))
 
-;;; TODO: call the plan with a designator containing the action roles
+
+(defparameter *plan-matchings* (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) nil))
+
+
 
 (defun start-plan (plan-fn args)
   (sb-thread:make-thread (lambda ()
                            (apply plan-fn args))))
 
-(defun prepare-plan (plan-fn prep-args-fn action-roles)
-  (let* ((action-roles (coerce action-roles 'list)))
-    ;; We give the prep-args function the opportunity to decide whether to run the plan or not (maybe arguments
-    ;; missing, can't be resolved, whatever).
-    (multiple-value-bind (should-start args plan-info) (apply prep-args-fn action-roles)
-      (if should-start
-        (start-plan plan-fn args))
-      (values T plan-info))))
+(defun prepare-plan (plan-fn prep-args-fn &rest action-roles)
+  ;; We give the prep-args function the opportunity to decide whether to run the plan or not (maybe arguments
+  ;; missing, can't be resolved, whatever).
+  (multiple-value-bind (should-start args plan-info plan-string) (apply prep-args-fn action-roles)
+    (if should-start
+      (start-plan plan-fn args))
+    (values T plan-info plan-string)))
 
-
-;;action_core: Pouring
-;;action_roles: ['stuff','goal','action_verb']
-;;cram_plan: "(pour-from-container (from (an object (type container.n.01)
-;;                                                    (contains (some stuff (type {stuff}))))
-;;                                   (to (an object (type {goal})))))"
-
-
-(defun find-and-start-plan (action-cores)
+(defun find-and-start-plan (action-cores plan-matchings)
   ;; At the moment, assumes the last action core is the most specific, and that only the most specific is needed.
   (let* ((action-core (car (last (coerce action-cores 'list)))))
     (roslisp:with-fields ((action-core-name action_core_name) (action-roles action_roles)) action-core
-      (cond
-        ((equalp action-core-name "dbg-prac2cram")
-          (prepare-plan #'test-plan #'get-test-plan-args action-roles))
-        (T
-          (values nil (format nil "no plan found to match the action core ~a" action-core-name)))))))
+      (let* ((action-roles (coerce action-roles 'list))
+             (matching-plan (cdr (assoc (format nil "~a" action-core-name) plan-matchings :test #'equal)))
+             (fn-args (append matching-plan action-roles)))
+        (if matching-plan
+          (apply #'prepare-plan fn-args)
+          (values nil 
+                  (format nil "no plan found to match the action core ~a (known are ~a)" action-core-name plan-matchings)
+                  ""))))))
 
-;;; (subseq plan 0 (search " " plan))
+;;(lambda (req) 
+;;  (roslisp:with-fields (action_cores) req
+;;    (Prac2Cram action_cores plan-matchings)))
+
 (roslisp:def-service-callback Prac2Cram (action_cores)
-  (roslisp:ros-info (basics-system) "Received service call with these parameters: Action Cores: ~a" action_cores)
-
+  (let* ((action-cores action_cores))
+  (roslisp:ros-info (basics-system) "Received service call with these parameters: Action Cores: ~a" action-cores)
   (if cpl:*task-tree*  ;; test if another cram plan is running; *task-tree* will be non-NIL if so
-    (roslisp:make-response :status -1 :message "Another cram plan is running. Wait for it to finish and send the request again.")
-    (multiple-value-bind (plan-started plan-info) (find-and-start-plan action_cores)  ;; identify plan based on action_core_name
+    (roslisp:make-response ;;"prac2cram/Prac2CramResponse" 
+                          :status -1
+                          :message "Another cram plan is running. Wait for it to finish and send the request again."
+                          :plan_string "")
+    (multiple-value-bind (plan-started plan-info plan-string) 
+                         (find-and-start-plan action-cores *plan-matchings*)  ;; identify plan based on action_core_name
       (if plan-started
-        (make-response :status 0 :message (format nil "Started plan: ~a." plan-info))
-        (make-response :status -1 :message (format nil "No plan started: ~a." plan-info)))))
-  )
-
-; This is an example of what the server receives:
-;  #([ACTIONCORE
-;   ACTION_CORE_NAME:
-;     Starting
-;   ACTION_ROLES:
-;     #([ACTIONROLE
-;          ROLE_NAME:
-;            obj_to_be_started
-;          ROLE_VALUE:
-;            centrifuge.n.01])]
-;[ACTIONCORE
-;   ACTION_CORE_NAME:
-;     TurningOnElectricalDevice
-;   ACTION_ROLES:
-;     #([ACTIONROLE
-;          ROLE_NAME:
-;            device
-;          ROLE_VALUE:
-;            centrifuge.n.01])])
+        (roslisp:make-response ;;"prac2cram/Prac2CramResponse"
+                              :status 0 
+                              :message (format nil "Started plan: ~a." plan-info)
+                              :plan_string plan-string)
+        (roslisp:make-response ;;"prac2cram/Prac2CramResponse"
+                              :status -1 
+                              :message (format nil "No plan started: ~a." plan-info)
+                              :plan_string ""))))
+  ))
 
 
-;;; we need these plans:
-; unscrew
-; pull-object
-; open-door
-; pour-from-container
-; operate-tap
-; pour-from-spice-jar
-; use-spoon
-; turn-on-device
-; use-measuring-cup
-; use-pipette
-
-
-(defun prac2cram-server ()
-  (roslisp:with-ros-node ("prac2cram_server" :spin t)
-     (roslisp:register-service "prac2cram" 'Prac2Cram)
-     (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query.")))
+(defun prac2cram-server (plan-matchings)
+  ;; put the debugging/test plan into the plan-matchings alist to ensure it's there.
+  (let* ((plan-matchings (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) plan-matchings)))
+    (setf *plan-matchings* plan-matchings)
+       (roslisp:register-service "prac2cram" 
+                                 'Prac2Cram)
+       (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query.")))
 
 
 

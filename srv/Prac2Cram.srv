@@ -8,4 +8,5 @@ ActionCore[] action_cores # each action core contains a list of action roles
 
 int32 status   # 0 if everything was ok, -1 otherwise
 string message  # in case of error: message what went wrong
+string plan_string # something to describe the plan call
 
