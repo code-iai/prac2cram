@@ -23,11 +23,11 @@ remote_server = rpc_client.get_proxy()
 
 ## Neutralization
 
-placing = [{'action_core_name': 'put-object', 'action_roles': [{'role_name': 'substance', 'role_value': 'unknownsubstance'}, {'role_name': 'location', 'role_value': 'mixer'}]}]
-pipetting = [{'action_core_name': 'use-pipette', 'action_roles': [{'role_name': 'content', 'role_value': 'indicator'}, {'role_name': 'goal', 'role_value': 'UnknownSubstance'}, {'role_name': 'amount', 'role_value': '2'}, {'role_name': 'unit', 'role_value': 'drops'}]}]
-pouring = [{'action_core_name': 'use-measuring-cup', 'action_roles': [{'role_name': 'content', 'role_value': 'purine'}, {'role_name': 'goal', 'role_value': 'UnknownSubstance'}, {'role_name': 'amount', 'role_value': '100'}, {'role_name': 'unit', 'role_value': 'ml'}]}]
-turning_on_mixer = [{'action_core_name': 'turn-on-electrical-device', 'action_roles': [{'role_name': 'device', 'role_value': 'mixer'}, {'role_name': 'part', 'role_value': 'on-button'}]}]
-neutralization_tasks = [placing, pipetting, pouring, turning_on_mixer]
+placing = {'action_cores': [{'action_core_name': 'put-object', 'action_roles': [{'role_name': 'substance', 'role_value': 'unknownsubstance'}, {'role_name': 'location', 'role_value': 'mixer'}]}]}
+pipetting = {'action_cores': [{'action_core_name': 'use-pipette', 'action_roles': [{'role_name': 'content', 'role_value': 'indicator'}, {'role_name': 'goal', 'role_value': 'UnknownSubstance'}, {'role_name': 'amount', 'role_value': '2'}, {'role_name': 'unit', 'role_value': 'drops'}]}]}
+pouring = {'action_cores': [{'action_core_name': 'use-measuring-cup', 'action_roles': [{'role_name': 'content', 'role_value': 'purine'}, {'role_name': 'goal', 'role_value': 'UnknownSubstance'}, {'role_name': 'amount', 'role_value': '100'}, {'role_name': 'unit', 'role_value': 'ml'}]}]}
+turning_on_mixer = {'action_cores': [{'action_core_name': 'turn-on-electrical-device', 'action_roles': [{'role_name': 'device', 'role_value': 'mixer'}, {'role_name': 'part', 'role_value': 'on-button'}]}]}
+neutralization_tasks = [placing, turning_on_mixer, pipetting, pouring, turning_on_mixer]
 
 # call a method called 'reverse_string' with a single string argument
 result = remote_server.prac2cram_client(neutralization_tasks)
