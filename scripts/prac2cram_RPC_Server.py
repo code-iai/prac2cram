@@ -33,17 +33,14 @@
 #
 # Revision $Id$
 
-import sys
-import os
 import logging
 logging.basicConfig(level=logging.DEBUG)
 import rospy
-import std_msgs.msg
 
 # imports the service
-from prac2cram.srv import *
+from prac2cram.srv import Prac2Cram
 # import the messages
-from prac2cram.msg import *
+from prac2cram.msg import Task, ActionCore, ActionRole
 
 import gevent
 import gevent.wsgi
@@ -108,7 +105,7 @@ def prac2cram_client(tasks_RPC):
 
     # block until the service is available
     # you can optionally specify a timeout
-    
+
     rospy.wait_for_service('prac2cram', timeout=5) # in seconds
 
     try:
