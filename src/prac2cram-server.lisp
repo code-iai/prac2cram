@@ -21,15 +21,15 @@
     ;; For this test plan, let's say we expect EXACTLY 1 action role, of name 'test-flag'
     (if (equal action-role-count 1)
       (if (equal "test-flag" (car (car action-roles)))
-        (values T
+        (values 0
                 (list (desig:make-designator 'object (list (list 'test-flag (second (car action-roles))))))
                 (format nil "test-plan with parameter obj-desig:((test-flag ~a))" (second (car action-roles)))
                 (format nil "(testplan (test-flag ~a))" (second (car action-roles))))
-        (values nil 
+        (values -1 
                 nil 
                 (format nil "expected test-flag as action role, instead got ~a" (car (car action-roles)))
                 (format nil "")))
-      (values nil 
+      (values -1 
               nil
               (format nil "expected exactly one role, got ~a" action-role-count)
               (format nil "")))))
