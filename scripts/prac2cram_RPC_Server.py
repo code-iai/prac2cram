@@ -35,7 +35,8 @@
 
 import sys
 import os
-
+import logging
+logging.basicConfig(level=logging.DEBUG)
 import rospy
 import std_msgs.msg
 
@@ -75,14 +76,20 @@ def getROSActionCores(action_cores_RPC):
       role_ROS = ActionRole(role_name=role_RPC['role_name'], role_value=role_RPC['role_value'])
       action_core_ROS.action_roles.append(role_ROS)
     action_cores_ROS.append(action_core_ROS)
+
+  
   return action_cores_ROS
 
 def getROSTasks(tasks_RPC):
+
+  print 'received: %s' %tasks_RPC
   tasks_ROS = []
   for task in tasks_RPC:
-    tasks_ROS.append(Task(action_cores = getROSActionCores(task)))
+    tasks_ROS.append(Task(action_cores = getROSActionCores(task['action_cores'])))
+  print 'tasks_ROS: %s' %tasks_ROS
   return tasks_ROS
 
+# for the generated plan strings
 def getStringList(strings_ROS):
   strings_RPC = []
   for string in strings_ROS:
@@ -101,7 +108,8 @@ def prac2cram_client(tasks_RPC):
 
     # block until the service is available
     # you can optionally specify a timeout
-    rospy.wait_for_service('prac2cram')
+    
+    rospy.wait_for_service('prac2cram', timeout=5) # in seconds
 
     try:
         # create a handle to the service
