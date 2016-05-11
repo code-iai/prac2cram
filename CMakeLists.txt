@@ -15,6 +15,7 @@ add_service_files(
 
   FILES
   Prac2Cram.srv
+  POSTRequest.srv
 )
 
 add_message_files(

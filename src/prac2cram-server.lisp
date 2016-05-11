@@ -36,6 +36,7 @@
 
 
 (defparameter *plan-matchings* (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) nil))
+(defparameter *prac-url* "http://localhost:1234")
 
 (defun start-plan (plan-fn args)
   (sb-thread:make-thread (lambda ()
@@ -99,6 +100,15 @@
 ;;  (roslisp:with-fields (tasks) req
 ;;    (Prac2Cram tasks plan-matchings)))
 
+(defun query-for-substitutes (action-core action-role rejected-values suggested-values)
+  (let* ((url (format nil "~a/find_substitute_for_role/" (string-right-trim "/" *prac-url*)))
+         (param-names (list "action-core" "role" "previous-values" "suggested-values"))
+         (param-values (list action-core action-role (format nil "~a" rejected-values) (format nil "~a" suggested-values))))
+    (roslisp:call-service "/prac2cram_http_bridge"
+                          :url url
+                          :param_names param-names
+                          :param_values param-values)))
+
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
     (roslisp:ros-info (basics-system) "Received service call with these parameters: Tasks: ~a" tasks)
@@ -120,9 +130,13 @@
                                  :plan_strings (coerce plan-strings 'list)))))))
 
 
-(defun prac2cram-server (plan-matchings)
+(defun prac2cram-server (plan-matchings &optional (prac-url "http://localhost:1234"))
   ;; put the debugging/test plan into the plan-matchings alist to ensure it's there.
   (let* ((plan-matchings (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) plan-matchings)))
+    (setf *prac-url* prac-url)
+    (if (not (roslisp:wait-for-service "/prac2cram_http_bridge" 0.1))
+      (sb-thread:make-thread (lambda ()
+                               (sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge")))))
     (setf *plan-matchings* plan-matchings)
        (roslisp:register-service "prac2cram" 
                                  'Prac2Cram)
