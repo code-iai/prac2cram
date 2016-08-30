@@ -27,10 +27,9 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-(defpackage :prac2cram
-  (:use :cl :roslisp :prac2cram-srv)
-  (:export :prac2cram-argument-invalid-error
-           :prac2cram-no-substitutions-error
-           :prac2cram-server
-           :prac2cram-server2
-           :query-for-substitute))
+(in-package :prac2cram)
+
+(defparameter *plan-matchings* nil)
+(defparameter *prac-url* "http://localhost:1234")
+
+

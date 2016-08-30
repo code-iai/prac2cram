@@ -27,10 +27,18 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-(defpackage :prac2cram
-  (:use :cl :roslisp :prac2cram-srv)
-  (:export :prac2cram-argument-invalid-error
-           :prac2cram-no-substitutions-error
-           :prac2cram-server
-           :prac2cram-server2
-           :query-for-substitute))
+(in-package :prac2cram)
+
+(define-condition prac2cram-argument-invalid-error (simple-condition)
+  ((message :initarg :message :reader message :initform "PRAC2CRAM argument-invalid error: an argument-fn encountered an error in one of the action roles.")
+   (action-core :initarg :action-core :reader action-core :initform nil)
+   (role-name :initarg :role-name :reader role-name :initform nil)
+   (role-value :initarg :role-value :reader role-value :initform nil)))
+
+(define-condition prac2cram-no-substitutions-error (simple-condition)
+  ((message :initarg :message :reader message :initform "PRAC2CRAM no-substitutions error: could find no more substitutions for a role argument.")
+   (action-core :initarg :action-core :reader action-core :initform nil)
+   (role-name :initarg :role-name :reader role-name :initform nil)
+   (role-values :initarg :role-values :reader role-values :initform nil)))
+
+

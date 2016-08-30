@@ -1,3 +1,32 @@
+;;;
+;;; Copyright (c) 2016, Mihai Pomarlan <blandc@cs.uni-bremen.com>
+;;; All rights reserved.
+;;; 
+;;; Redistribution and use in source and binary forms, with or without
+;;; modification, are permitted provided that the following conditions are met:
+;;; 
+;;;     * Redistributions of source code must retain the above copyright
+;;;       notice, this list of conditions and the following disclaimer.
+;;;     * Redistributions in binary form must reproduce the above copyright
+;;;       notice, this list of conditions and the following disclaimer in the
+;;;       documentation and/or other materials provided with the distribution.
+;;;     * Neither the name of Willow Garage, Inc. nor the names of its
+;;;       contributors may be used to endorse or promote products derived from
+;;;       this software without specific prior written permission.
+;;; 
+;;; THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+;;; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+;;; IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+;;; ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+;;; LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+;;; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+;;; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+;;; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+;;; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+;;; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+;;; POSSIBILITY OF SUCH DAMAGE.
+;;;
+
 (in-package :prac2cram)
 
 ;;; Make a test plan for debugging purposes.
@@ -8,7 +37,7 @@
 
 (cpl:def-top-level-cram-function test-plan (obj-desig)
   ;; TODO: also add calls to logging here. Because if we test functionality, let's be thorough :P
-  (format t "Hello world! I just got this object designator through the prac2cram connection:~%~a~%isn't it awesome?~%" obj-desig))
+  (format t "Hello world! I just got this object (pseudo-)designator through the prac2cram connection:~%~a~%isn't it awesome?~%" obj-desig))
 
 (defun get-test-plan-args (&rest action-roles)
   ;; for convenience convert action-roles from list-of-messages to list-of-lists(-of-string)
@@ -22,7 +51,7 @@
     (if (equal action-role-count 1)
       (if (equal "test-flag" (car (car action-roles)))
         (values 0
-                (list (desig:make-designator 'object (list (list 'test-flag (second (car action-roles))))))
+                (list (list 'an 'object (list (list 'test-flag (second (car action-roles))))))
                 (format nil "test-plan with parameter obj-desig:((test-flag ~a))" (second (car action-roles)))
                 (format nil "(testplan (test-flag ~a))" (second (car action-roles))))
         (values -1 
@@ -34,34 +63,7 @@
               (format nil "expected exactly one role, got ~a" action-role-count)
               (format nil "")))))
 
-
-(defparameter *plan-matchings* (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) nil))
-(defparameter *prac-url* "http://localhost:1234")
-
-(defun start-plan (plan-fn args)
-  (sb-thread:make-thread (lambda ()
-                           (apply plan-fn args))))
-
-(defun prepare-plan (plan-fn prep-args-fn &rest action-roles)
-  ;; We give the prep-args function the opportunity to decide whether to run the plan or not (maybe arguments
-  ;; missing, can't be resolved, whatever).
-  (multiple-value-bind (should-start args plan-info plan-string) (apply prep-args-fn action-roles)
-    (if should-start
-      (start-plan plan-fn args))
-    (values T plan-info plan-string)))
-
-(defun find-and-start-plan (action-cores plan-matchings)
-  ;; At the moment, assumes the last action core is the most specific, and that only the most specific is needed.
-  (let* ((action-core (car (last (coerce action-cores 'list)))))
-    (roslisp:with-fields ((action-core-name action_core_name) (action-roles action_roles)) action-core
-      (let* ((action-roles (coerce action-roles 'list))
-             (matching-plan (cdr (assoc (format nil "~a" action-core-name) plan-matchings :test #'equal)))
-             (fn-args (append matching-plan action-roles)))
-        (if matching-plan
-          (apply #'prepare-plan fn-args)
-          (values nil 
-                  (format nil "no plan found to match the action core ~a (known are ~a)" action-core-name plan-matchings)
-                  ""))))))
+;;;; PRAC2CRAM interface (the one used for the ACAT review demo)
 
 (defun interpret-task (task plan-matchings)
   (roslisp:with-fields ((action-cores action_cores)) task
@@ -96,19 +98,6 @@
                                        plan-fns plan-arg-fns args-list))))
     (values started statuses messages plan-strings)))
 
-;;(lambda (req) 
-;;  (roslisp:with-fields (tasks) req
-;;    (Prac2Cram tasks plan-matchings)))
-
-(defun query-for-substitutes (action-core action-role rejected-values suggested-values)
-  (let* ((url (format nil "~a/find_substitute_for_role/" (string-right-trim "/" *prac-url*)))
-         (param-names (list "action-core" "role" "previous-values" "suggested-values"))
-         (param-values (list action-core action-role (format nil "~a" rejected-values) (format nil "~a" suggested-values))))
-    (roslisp:call-service "/prac2cram_http_bridge"
-                          :url url
-                          :param_names param-names
-                          :param_values param-values)))
-
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
     (roslisp:ros-info (basics-system) "Received service call with these parameters: Tasks: ~a" tasks)
@@ -136,7 +125,8 @@
     (setf *prac-url* prac-url)
     (if (not (roslisp:wait-for-service "/prac2cram_http_bridge" 0.1))
       (sb-thread:make-thread (lambda ()
-                               (sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge")))))
+                               ;;(sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge"))
+                               (format t "WARNING: parameter substitution request service not available. Better not fall into that branch, eh?~%"))))
     (setf *plan-matchings* plan-matchings)
        (roslisp:register-service "prac2cram" 
                                  'Prac2Cram)

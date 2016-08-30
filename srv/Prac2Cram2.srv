@@ -1,0 +1,12 @@
+# request
+
+string tasks # json encoding of a list of tasks; each task is a list of action cores, which are maps of name and role-value pairs. Role values may be tasks.
+
+---
+
+# response
+
+int32 status              # 0 if everything was ok, -1 otherwise
+string plan_string        # a lisp-like plan string
+string[] errors           # any error strings collected during code generation will go here
+

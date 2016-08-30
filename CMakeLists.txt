@@ -5,6 +5,9 @@ find_package(catkin REQUIRED COMPONENTS
   roslisp
   rospy
   std_msgs
+  alexandria
+  cram_language
+  yason
   message_generation
 )
 
@@ -15,6 +18,7 @@ add_service_files(
 
   FILES
   Prac2Cram.srv
+  Prac2Cram2.srv
   POSTRequest.srv
 )
 
@@ -35,7 +39,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES assignment_6_1
-  CATKIN_DEPENDS roslisp std_msgs message_runtime
+  CATKIN_DEPENDS roslisp rospy alexandria std_msgs message_runtime cram_language yason
 #  DEPENDS system_lib
 )
 

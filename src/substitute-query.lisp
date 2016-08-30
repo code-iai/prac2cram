@@ -27,10 +27,26 @@
 ;;; POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-(defpackage :prac2cram
-  (:use :cl :roslisp :prac2cram-srv)
-  (:export :prac2cram-argument-invalid-error
-           :prac2cram-no-substitutions-error
-           :prac2cram-server
-           :prac2cram-server2
-           :query-for-substitute))
+(in-package :prac2cram)
+
+(defun query-for-substitute (failed-action-core failed-role-name tried-values)
+  (let* ((url (format nil "~a/find_substitute_for_role/" (string-right-trim "/" *prac-url*)))
+         (param-names (list "action-core" "role" "previous-values"))
+         (param-values (list failed-action-core failed-role-name (json-encode tried-values))))
+    (roslisp:with-fields (result)
+                         (roslisp:call-service "/prac2cram_http_bridge"
+                                               :url url
+                                               :param_names param-names
+                                               :param_values param-values)
+      (json-decode result))))
+
+;;(defun query-for-substitutes (action-core action-role rejected-values suggested-values)
+;;  (let* ((url (format nil "~a/find_substitute_for_role/" (string-right-trim "/" *prac-url*)))
+;;         (param-names (list "action-core" "role" "previous-values" "suggested-values"))
+;;         (param-values (list action-core action-role (format nil "~a" rejected-values) (format nil "~a" suggested-values))))
+;;    (roslisp:call-service "/prac2cram_http_bridge"
+;;                          :url url
+;;                          :param_names param-names
+;;                          :param_values param-values)))
+
+
