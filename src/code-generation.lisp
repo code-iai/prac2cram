@@ -47,16 +47,16 @@
                         nil))
          (dummy2 (setf (plan-string plan-string) (format nil "~a~a)~%" (plan-string plan-string) tab-string))))
     (declare (ignore dummy) (ignore dummy2))
-(format t "BRANCH CONDITION ~a ~%" branch-condition)
-(format t "    Branch data ~a~%" (alexandria:hash-table-alist branch))
-(format t "    Test function ~a~%" (hash-table-test branch))
+;;(format t "BRANCH CONDITION ~a ~%" branch-condition)
+;;(format t "    Branch data ~a~%" (alexandria:hash-table-alist branch))
+;;(format t "    Test function ~a~%" (hash-table-test branch))
     (if branch-condition
       (progn
         (make-fn-app (lambda ()
                        (let* ((fn-app-list (make-instance 'function-application-list :fn-list fn-app-list)))
                          (ptr-seq fn-app-list)))))
       (progn
-        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOR EMPTY CONDITION>~%" plan-string tab-string))
+        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOR EMPTY CONDITION>~%" (plan-string plan-string) tab-string))
         (setf (errors error-log) 
               (cons (make-instance 'prac2cram-error
                                    :message (format nil "IF-branch has empty condition role."))
@@ -83,12 +83,52 @@
         (make-fn-app (lambda ()
                        (ptr-try-all fn-app-list))))
       (progn
-        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOR EMPTY CONDITIONAL>~%" plan-string tab-string))
+        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOR EMPTY CONDITIONAL>~%" (plan-string plan-string) tab-string))
         (setf (errors error-log) 
               (cons (make-instance 'prac2cram-error
                                    :message (format nil "Action-core IF has no role values for branches."))
                     (errors error-log)))
         (make-fn-app (lambda ()))))))
+
+(defun generate-ptr-code-loop (action-core plan-matchings error-log plan-string tab-string)
+  (let* ((action-core (specialize-action-core action-core))
+         (action-core-arguments (alexandria:hash-table-alist (action-core-arguments action-core)))
+         (action (cdr (assoc "action" action-core-arguments :test #'equal)))
+         (condition (cdr (assoc "condition" action-core-arguments :test #'equal)))
+         (loop-type (cdr (assoc "type" action-core-arguments :test #'equal)))
+         (ran-once (cpl-impl:make-fluent :value nil))
+         (must-run-once (equal loop-type "do-until"))
+         (all-ok (and condition loop-type action))
+         (dummy (if all-ok
+                  (setf (plan-string plan-string)
+                        (format nil "~a~a(~a~%"
+                                    (plan-string plan-string) tab-string (string-upcase loop-type)))
+                  (progn
+                    (setf (plan-string plan-string) (format nil "~a~a<NO PLAN BECAUSE MISSING LOOP ROLE>~%" (plan-string plan-string) tab-string))
+                    (setf (errors error-log)
+                          (cons (make-instance 'prac2cram-error
+                                               :message (format nil "Action-core LOOP has at least one missing role value."))
+                                (errors error-log))))))
+         (condition (when all-ok (generate-ptr-code-for-action-core condition plan-matchings error-log plan-string (format nil "~a   " tab-string))))
+         (action (when all-ok (generate-ptr-code-for-action-core action plan-matchings error-log plan-string (format nil "~a   " tab-string))))
+         (dummy2 (if all-ok
+                   (setf (plan-string plan-string)
+                         (format nil "~a~a)~%" (plan-string plan-string) tab-string))))
+         (all-ok (and all-ok (not (errors error-log)))))
+    (declare (ignore dummy) (ignore dummy2))
+    (if all-ok
+      (make-fn-app (lambda ()
+                     (cpl-impl:pursue
+                       ;; code branch
+                       (loop
+                         (funcall (function-application/function-object action))
+                         (setf (cpl-impl:value ran-once) t))
+                       ;; monitor branch
+                       (progn
+                         (if must-run-once
+                           (cpl-impl:wait-for ran-once))
+                         (funcall (function-application/function-object condition))))))
+      (make-fn-app (lambda ())))))
 
 (defun generate-ptr-code-default (action-core plan-matchings error-log plan-string tab-string)
   (let* ((action-core (specialize-action-core action-core))
@@ -100,7 +140,7 @@
          (matching-plan-name (third matching)))
     (if (and matching-plan matching-arg-fn)
       (progn
-        (setf (plan-string plan-string) (format nil "~a~a(~a ~a)~%" plan-string tab-string matching-plan-name action-core-arguments))
+        (setf (plan-string plan-string) (format nil "~a~a(~a ~a)~%" (plan-string plan-string) tab-string matching-plan-name action-core-arguments))
         (make-fn-app (lambda ()
                        (let* ((action-core-arguments (action-core-arguments action-core))
                               (tried-values (make-hash-table :test #'equal)))
@@ -115,7 +155,7 @@
                                 (cpl-impl:retry))))
                            (apply matching-plan (funcall matching-arg-fn action-core-arguments)))))))
       (progn
-        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOUND FOR ~a>~%" plan-string tab-string action-core-name))
+        (setf (plan-string plan-string) (format nil "~a~a<NO PLAN FOUND FOR ~a>~%" (plan-string plan-string) tab-string action-core-name))
         (setf (errors error-log) 
               (cons (make-instance 'prac2cram-error
                                    :message (format nil "Couldn't find matching plan and arg-fn for action core ~a." action-core-name))
@@ -124,8 +164,11 @@
 
 (defun generate-ptr-code-for-action-core (action-core plan-matchings error-log plan-string tab-string)
   (let* ((action-core-name (action-core-name action-core))
+         (action-keyword-loop (equal "loop" (string-downcase action-core-name)))
          (action-keyword-if (equal "if" (string-downcase action-core-name))))
     (cond
+      (action-keyword-loop
+        (generate-ptr-code-loop action-core plan-matchings error-log plan-string tab-string))
       (action-keyword-if
         (generate-ptr-code-if action-core plan-matchings error-log plan-string tab-string))
       (T ;; action-core is not a keyword

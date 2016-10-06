@@ -1,3 +1,12 @@
+;; Parameters/global vars
+
+(defparameter *current-color* "clear")
+(defparameter *actual-contents* "magnesium")
+(defparameter *concentration* 5)
+
+(defparameter test-error-log (make-instance 'prac2cram::prac2cram-error-log))
+(defparameter test-plan-string (make-instance 'prac2cram::prac2cram-plan-string))
+
 ;; "Identification of metal cations"
 ;;
 ;; Pour 5 drops of sodium hydroxide in the test container.
@@ -9,12 +18,6 @@
 ;; solution contains aluminium".
 ;; If the precipitate in the test container remains, the robot
 ;; says "the solution contains magnesium".
-
-(defparameter *current-color* "clear")
-(defparameter *actual-contents* "magnesium")
-
-(defparameter test-error-log (make-instance 'prac2cram::prac2cram-error-log))
-(defparameter test-plan-string (make-instance 'prac2cram::prac2cram-plan-string))
 
 (defun update-color (concentrated-naoh)
   (cond
@@ -75,12 +78,6 @@
 (defun test-expect-color-argfn (arg-hash)
   (let* ((color (gethash "color" arg-hash)))
     (list color)))
-
-(defparameter test-plan-matchings
-              (list (list "use-pipette" #'test-pipette #'test-pipette-argfn "pipette")
-                    (list "use-measuring-cup" #'test-pour #'test-pour-argfn "pour")
-                    (list "say" #'test-say #'test-say-argfn "say")
-                    (list "expect-color" #'test-expect-color #'test-expect-color-argfn "expect-color")))
 
 (defparameter pour-NaOH-drops
               (alexandria:alist-hash-table (list (cons "name" "use-pipette") 
@@ -167,4 +164,64 @@
               (list (list pour-NaOH-drops)
                     (list if-on-diluted-NaOH)))
 
+;; "Titration"
+;;
+;; Pour a drop of NaOH into the test solution until the 
+;; test solution is clear.
+
+(defun update-concentration ()
+  (setf *concentration* (- *concentration* 1))
+  (if (< *concentration* 0)
+    (setf *concentration* 0))
+  (if (equal *concentration* 0)
+    (setf *current-color* "clear")))
+
+(defun pour-drop (what where)
+  (roslisp:wait-duration 4.0)
+  (format t "Pouring one drop of ~a into ~a ...~%" what where)
+  (update-concentration))
+
+(defun pour-drop-argfn (arg-hash)
+  (let* ((content (gethash "content" arg-hash))
+         (goal (gethash "goal" arg-hash)))
+    (list content goal)))
+
+(defun test-check-color (color)
+  (format t "Actual color ~a Expected ~a~%" *current-color* color)
+  (loop while (not (equal color *current-color*)) do
+    (progn
+      (format t "Actual color ~a Expected ~a~%" *current-color* color)
+      (roslisp:wait-duration 1.0)))
+  (format t "Actual color ~a Expected ~a~%" *current-color* color))
+
+(defparameter titration-check-clear
+              (alexandria:alist-hash-table (list (cons "name" "wait-color")
+                                                 (cons "roles" (alexandria:alist-hash-table '(("color" . "clear")) :test #'equal)))
+                                           :test #'equal))
+
+(defparameter pour-drop-action
+              (alexandria:alist-hash-table (list (cons "name" "pour-drop") 
+                                                 (cons "roles" (alexandria:alist-hash-table '(("content" . "NatriumHydroxide")
+                                                                                              ("goal" . "TestSolution")) :test #'equal)))
+                                           :test #'equal))
+
+(defparameter titration-loop
+              (alexandria:alist-hash-table (list (cons "name" "loop") 
+                                                 (cons "roles" (alexandria:alist-hash-table `(("type" . "loop-until")
+                                                                                              ("condition" . ,(list titration-check-clear))
+                                                                                              ("action" . ,(list pour-drop-action))) :test #'equal)))
+                                           :test #'equal))
+
+(defparameter titration
+  (list (list titration-loop)))
+
+;; Plan matchings
+
+(defparameter test-plan-matchings
+              (list (list "use-pipette" #'test-pipette #'test-pipette-argfn "pipette")
+                    (list "use-measuring-cup" #'test-pour #'test-pour-argfn "pour")
+                    (list "say" #'test-say #'test-say-argfn "say")
+                    (list "wait-color" #'test-check-color #'test-expect-color-argfn "wait-color")
+                    (list "pour-drop" #'pour-drop #'pour-drop-argfn "pour-drop")
+                    (list "expect-color" #'test-expect-color #'test-expect-color-argfn "expect-color")))
 
