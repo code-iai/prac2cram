@@ -21,6 +21,8 @@ transport = WsgiServerTransport(queue_class=gevent.queue.Queue)
 portOffsNum = int(sys.argv[1])
 packageName = str(sys.argv[2])
 
+print 'Starting subprocess of portIdx ' + str(portOffsNum) + ' and type ' + str(packageName)
+
 # start wsgi server as a background-greenlet
 wsgi_server = gevent.wsgi.WSGIServer(('0.0.0.0', 5050 + portOffsNum), transport.handle)
 gevent.spawn(wsgi_server.serve_forever)

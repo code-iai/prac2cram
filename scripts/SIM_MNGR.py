@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
+import sys
 import time
+import subprocess
 
 import gevent
 import gevent.wsgi
@@ -31,7 +32,8 @@ childPackages = ('pizza_demo', 'pizza_demo')
 subprocesses = []
 
 for k, p in zip(childNums, childPackages):
-    subprocesses.append(subprocess.Popen('python sim_inst_mngr.py ' + str(k) + ' ' + str(p), stdout=subprocess.PIPE, shell=True, stderr=subprocess.PIPE, preexec_fn=os.setsid))
+    print 'Opening subprocess ' + 'python sim_inst_mngr.py ' + str(k) + ' ' + str(p)
+    subprocesses.append(subprocess.Popen('python sim_inst_mngr.py ' + str(k) + ' ' + str(p), stdout=sys.stdout, shell=True, stderr=subprocess.PIPE, preexec_fn=os.setsid))
 
 #@dispatcher.public
 #def <RPC server code>:
