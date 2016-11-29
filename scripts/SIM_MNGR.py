@@ -33,7 +33,12 @@ subprocesses = []
 
 for k, p in zip(childNums, childPackages):
     print 'Opening subprocess ' + 'python sim_inst_mngr.py ' + str(k) + ' ' + str(p)
-    subprocesses.append(subprocess.Popen('python sim_inst_mngr.py ' + str(k) + ' ' + str(p), stdout=sys.stdout, shell=True, stderr=subprocess.PIPE, preexec_fn=os.setsid))
+    subprocesses.append(subprocess.Popen('python sim_inst_mngr.py ' + str(k) + ' ' + str(p), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid))
+
+def exit_gracefully(sig, frame):
+    for s in subprocesses:
+        os.killpg(os.getpgid(s.pid), signal.SIGTERM)
+    sys.exit(0)
 
 #@dispatcher.public
 #def <RPC server code>:
