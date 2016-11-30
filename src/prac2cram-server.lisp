@@ -29,8 +29,8 @@
 
 (in-package :prac2cram)
 
-(defparameter plan-running (cpl:make-fluent :run-fluent :value nil))
-(defparameter plan-error (cpl:make-fluent :err-fluent :value nil))
+(defparameter plan-running (cpl:make-fluent :value nil))
+(defparameter plan-error (cpl:make-fluent :value nil))
 
 ;;; Make a test plan for debugging purposes.
 ;;; Note that for each plan we want prac2cram to be able to call we need:
@@ -154,7 +154,7 @@
     (setf *prac-url* prac-url)
     (setf (cpl:value plan-running) nil)
     ;; Subscribe to clock to create a tick-thread-- notify the ROS world that this prac2cram server is still running
-    (roslisp:subscribe "clock" "rosgraph_msgs/Clock" send-tick)
+    (roslisp:subscribe "clock" "rosgraph_msgs/Clock" #'send-tick)
     (if (not (roslisp:wait-for-service "/prac2cram_http_bridge" 0.1))
       (sb-thread:make-thread (lambda ()
                                ;;(sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge"))
