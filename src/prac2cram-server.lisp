@@ -105,7 +105,7 @@
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
     (roslisp:ros-info (basics-system) "Received service call with these parameters: Tasks: ~a" tasks)
-    (if plan-running
+    (if (cpl:value plan-running)
       (roslisp:make-response :status -1
                              :individual_status (vector)
                              :messages (vector "Another cram plan is running. Wait for it to finish and send the request again.")

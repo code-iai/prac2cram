@@ -130,8 +130,8 @@ def CRAMTickCallback(cramTick):
         doneTicks = 0
         onDone()
 
-#rospy.init_node('sim_rpc')
-#rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
+rospy.init_node('sim_rpc')
+rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
 
 def exit_gracefully(signum, frame):
     sys.exit(0)
