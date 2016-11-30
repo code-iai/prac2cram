@@ -6,21 +6,17 @@ import sys
 import time
 import signal
 import subprocess
-from threading import Thread
+
+import rospy
+import statecodes
+from prac2cram.msg import CRAMTick
 
 import gevent
 import gevent.wsgi
 import gevent.queue
 from tinyrpc.protocols.jsonrpc import JSONRPCProtocol
-from tinyrpc.transports.wsgi import WsgiServerTransport
-from tinyrpc.server.gevent import RPCServerGreenlets
-from tinyrpc.dispatch import RPCDispatcher
+from tinyrpc.transports.http import HttpPostClientTransport
 from tinyrpc import RPCClient
-
-import rospy
-import statecodes
-from p2c_rosaux import getROSTasks, getStringList
-from prac2cram.msg import CRAMTick
 
 portOffsNum = int(sys.argv[1])
 packageName = str(sys.argv[2])
@@ -31,28 +27,19 @@ if (3 < len(sys.argv)):
 
 print 'Starting subprocess of portIdx ' + str(portOffsNum) + ' and type ' + str(packageName)
 
-# start wsgi server as a background-greenlet
-dispatcher = RPCDispatcher()
-transport = WsgiServerTransport(queue_class=gevent.queue.Queue)
-
-wsgi_server = gevent.wsgi.WSGIServer(('0.0.0.0', 5050 + portOffsNum), transport.handle)
-gevent.spawn(wsgi_server.serve_forever)
-
-rpc_server = RPCServerGreenlets(
-    transport,
-    JSONRPCProtocol(),
-    dispatcher
-)
-
-
-
 #Setup port parameters
 gazeboPort = 11345 + portOffsNum
 rosPort = 11311 + portOffsNum
 rosBridgePort = 9090 + portOffsNum
+rpcPort = 5050 + portOffsNum
+
 os.environ["GAZEBO_MASTER_URI"] = "http://localhost:" + str(gazeboPort)
 os.environ["ROS_MASTER_URI"] = "http://localhost:" + str(rosPort)
 os.environ["ROSBRIDGE_WEBPORT"] = str(rosBridgePort)
+
+simURL = "http://localhost:" + str(rpcPort)
+simClient = None
+simRPC = None
 
 parentURL = None
 parentClient = None
@@ -60,13 +47,13 @@ parentRPC = None
 if (parentPort != None):
     parentURL = "http://localhost:" + parentPort
     parentClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(parentURL))
-    parentRPC = parentClient.get_proxy()    
+    parentRPC = parentClient.get_proxy()
 
 roscoreProc = None
 gazeboProc = None
 setParProc = None
+rpcProc = None
 cramProc = None
-mongoProc = None
 
 cState = statecodes.SC_BOOTING
 nState = statecodes.SC_BOOTING
@@ -77,9 +64,11 @@ CRAMWatchdogDoneTick = False
 
 def shutdownChildren():
     rospy.signal_shutdown("Shutting down simulation process tree.")
-    if (mongoProc != None):
-        os.killpg(os.getpgid(mongoProc.pid), signal.SIGTERM)
-        mongoProc = None
+    if (rpcProc != None):
+        os.killpg(os.getpgid(rpcProc.pid), signal.SIGTERM)
+        rpcProc = None
+        simRPC = None
+        simClient = None
     if (cramProc != None):
         os.killpg(os.getpgid(cramProc.pid), signal.SIGTERM)
         cramProc = None
@@ -108,20 +97,11 @@ def CRAMTickCallback(cramTick):
     if (0 != cramTick.done):
         CRAMWatchdogDoneTick = True    
 
-def notifyParentOfState():
+def notifyParentOfState(state):
     if (None != parentRPC):
-        parentRPC.notify_state({"childId": portOffsNum, "state": cState})
-
-def sendMongoLogsToParent():
-    #TODO: insert some notification to the parent here that mongo logs are available
-    return None
+        parentRPC.notify_state({"childId": portOffsNum, "state": state})
 
 def onIdle():
-    #If running, terminate mongo logging
-    if (None != mongoProc):
-        os.killpg(os.getpgid(mongoProc), signal.SIGTERM)
-        mongoProc = None
-    sendMongoLogsToParent()
     #Setup watchdog to track ticks from CRAM
     CRAMWatchdogTicked = False
     CRAMWatchdogErrTick = False
@@ -129,12 +109,12 @@ def onIdle():
     #Update state machine
     cState = statecodes.SC_IDLE
     #Tell parent (if any) that this instance is now ready to get commands
-    notifyParentOfState()
+    notifyParentOfState(cState)
     
 def onError():
     cState = statecodes.SC_ERROR
     #Tell parent (if any) that this instance is currently unavailable
-    notifyParentOfState()
+    notifyParentOfState(cState)
     #Need to restart everything
     shutdownChildren()
     #Gazebo takes a while to actually exit
@@ -154,6 +134,14 @@ def onBoot():
     #Setup rosparam for ROSBridge port
     setParProc = subprocess.call('rosparam set /port ' + str(rosBridgePort), shell=True)
     
+    #Run sim_rpc
+    comstring = 'python ./sim_rpc.py ' + str(portOffsNum) + ' ' + str(rpcPort)
+    if (None != parentURL)
+        comstring = comstring + ' ' + parentURL
+    rpcProc = subprocess.Popen(comstring, stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
+    time.sleep(1)
+    simClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(simURL))
+    simRPC = simClient.get_proxy()
     #Setup the listener to ticks from CRAM
     rospy.init_node('sim_inst_mng')
     rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
@@ -172,57 +160,6 @@ def onBoot():
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
 
-@dispatcher.public
-def getState():
-    return {"childId": portOffsNum, "state": cState}
-
-@dispatcher.public
-def start_simulation(tasks_RPC):
-    if (statecodes.SC_IDLE != cState) or (statecodes.SC_IDLE != nState):
-        return {"childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": cState, "message": "Not ready yet."}
-
-    # Maybe not needed, since the members have the same names, but better safe etc.
-    tasks_ROS = getROSTasks(tasks_RPC)
-    response = None
-    message = ""
-    messages = [""]
-    planstrings = [""]
-    status = -1
-    retcode = statecodes.RC_ALLOK
-
-    # NOTE: you don't have to call rospy.init_node() to make calls against
-    # a service. This is because service clients do not have to be
-    # nodes.
-
-    # block until the service is available
-    # you can optionally specify a timeout
-    #rospy.wait_for_service('prac2cram', timeout=5) # in seconds
-
-    try:
-        # create a handle to the service
-        prac2cram = rospy.ServiceProxy('prac2cram', Prac2Cram)
-
-        # simplified style
-        response = prac2cram(tasks_ROS)
-        # formal style
-        #resp2 = prac2cram.call(Prac2CramRequest(params))
-
-    except rospy.ServiceException, e:
-        response = None
-        status = -1
-        message = "Service call failed with the following error: " + str(e)
-        retcode = statecodes.RC_ROSSRVFAIL
-
-    if (None != response):
-        #Rosrun mongodb logger (but do this only when needed, ie. right before a sim begins)
-        mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=subprocess.PIPE, shell=True, stderr=subprocess.PIPE, preexec_fn=os.setsid)
-        message = "Started simulation."
-        messages = getStringList(response.messages)
-        planstrings = getStringList(response.plan_strings)
-        cState = statecodes.SC_BUSY
-        nState = statecodes.SC_BUSY
-    return {"childId": portOffsNum, "retcode": retcode, "state": cState, "message": message, "messages": messages, "plan_strings": planstrings}
-
 def watchdogLoop():
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
@@ -231,24 +168,25 @@ def watchdogLoop():
             onIdle()
         elif (statecodes.SC_ERROR == nState):
             onError()
-        elif (statecodes.SC_BUSY == cState) or (statecodes.SC_IDLE == cState):
-            time.sleep(10)
+        elif (statecodes.SC_IDLE == cState): or (statecodes.SC_BUSY == cState)
+            time.sleep(8)
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
                 #Next watchdog loop will trigger error handling
                 nState = statecodes.SC_ERROR
-            elif (True == CRAMWatchdogDoneTick) and (statecodes.SC_BUSY == cState):
-                #Next watchdog loop will transition to idle
-                nState = statecodes.SC_IDLE
+            #BUSY state now handled by sim_rpc
+            #elif (True == CRAMWatchdogDoneTick) and (statecodes.SC_BUSY == cState):
+            #    #Next watchdog loop will transition to idle
+            #    nState = statecodes.SC_IDLE
             CRAMWatchdogDoneTick = False
             CRAMWatchdogErrTick = False
             CRAMWatchdogTicked = False
 
-def rpcLoop(rpc_server):
-    rpc_server.serve_forever()
+#def rpcLoop(rpc_server):
+#    rpc_server.serve_forever()
 
-thread = Thread(target = rpcLoop, args = (rpc_server,))
-thread.setDaemon(True)
-thread.start()
+#thread = Thread(target = rpcLoop, args = (rpc_server,))
+#thread.setDaemon(True)
+#thread.start()
 
 watchdogLoop()
 
