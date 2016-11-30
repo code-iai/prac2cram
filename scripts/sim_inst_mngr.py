@@ -224,11 +224,6 @@ def start_simulation(tasks_RPC):
     return {"childId": portOffsNum, "retcode": retcode, "state": cState, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def watchdogLoop():
-    global cState
-    global nState
-    global CRAMWatchdogTicked
-    global CRAMWatchdogErrTick
-    global CRAMWatchdogDoneTick
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
             onBoot()
@@ -248,9 +243,12 @@ def watchdogLoop():
             CRAMWatchdogErrTick = False
             CRAMWatchdogTicked = False
 
-thread = Thread(target = watchdogLoop)
+def rpcLoop(rpc_server):
+    rpc_server.serve_forever()
+
+thread = Thread(target = rpcLoop, args = (rpc_server,))
 thread.setDaemon(True)
 thread.start()
 
-rpc_server.serve_forever()
+watchdogLoop()
 
