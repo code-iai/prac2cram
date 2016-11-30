@@ -6,6 +6,7 @@ import sys
 import time
 import signal
 import subprocess
+from threading import Thread
 
 import gevent
 import gevent.wsgi
@@ -16,6 +17,7 @@ from tinyrpc.server.gevent import RPCServerGreenlets
 from tinyrpc.dispatch import RPCDispatcher
 from tinyrpc import RPCClient
 
+import rospy
 import statecodes
 from p2c_rosaux import getROSTasks, getStringList
 from prac2cram.msg import CRAMTick
@@ -24,7 +26,7 @@ portOffsNum = int(sys.argv[1])
 packageName = str(sys.argv[2])
 
 parentPort = None
-if (2 < len(sys.argv)):
+if (3 < len(sys.argv)):
     parentPort = sys.argv[3]
 
 print 'Starting subprocess of portIdx ' + str(portOffsNum) + ' and type ' + str(packageName)
@@ -101,17 +103,18 @@ signal.signal(signal.SIGTERM, exit_gracefully)
 
 def CRAMTickCallback(cramTick):
     CRAMWatchdogTicked = True
-    if (0 != cramTick.error)
+    if (0 != cramTick.error):
         CRAMWatchdogErrTick = True
-    if (0 != cramTick.done)
+    if (0 != cramTick.done):
         CRAMWatchdogDoneTick = True    
 
 def notifyParentOfState():
-    if (None != parentRPC)
+    if (None != parentRPC):
         parentRPC.notify_state({"childId": portOffsNum, "state": cState})
 
 def sendMongoLogsToParent():
     #TODO: insert some notification to the parent here that mongo logs are available
+    return None
 
 def onIdle():
     #If running, terminate mongo logging
@@ -135,7 +138,7 @@ def onError():
     #Need to restart everything
     shutdownChildren()
     #Gazebo takes a while to actually exit
-    time.sleep(10)
+    time.sleep(15)
     #On next watchdog loop, will (re)boot child processes
     nState = statecodes.SC_BOOTING
 
@@ -221,6 +224,11 @@ def start_simulation(tasks_RPC):
     return {"childId": portOffsNum, "retcode": retcode, "state": cState, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def watchdogLoop():
+    global cState
+    global nState
+    global CRAMWatchdogTicked
+    global CRAMWatchdogErrTick
+    global CRAMWatchdogDoneTick
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
             onBoot()
