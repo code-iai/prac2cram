@@ -1,4 +1,5 @@
 import sys
+import signal
 
 import gevent
 import gevent.wsgi
@@ -10,11 +11,13 @@ from tinyrpc.server.gevent import RPCServerGreenlets
 from tinyrpc.dispatch import RPCDispatcher
 from tinyrpc import RPCClient
 
+import rospy
 import statecodes
+from prac2cram.msg import CRAMTick
 from p2c_rosaux import getROSTasks, getStringList
 
 portOffsNum = int(sys.argv[1])
-rpcPort = sys.argv[2]
+rpcPort = int(sys.argv[2])
 
 parentURL = None
 parentClient = None
@@ -121,6 +124,12 @@ def CRAMTickCallback(cramTick):
 
 rospy.init_node('sim_rpc')
 rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
+
+def exit_gracefully(signum, frame):
+    sys.exit(0)
+signal.signal(signal.SIGINT, exit_gracefully)
+signal.signal(signal.SIGTERM, exit_gracefully)
+
 
 rpc_server.serve_forever()
 

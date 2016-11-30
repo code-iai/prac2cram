@@ -136,7 +136,7 @@ def onBoot():
     
     #Run sim_rpc
     comstring = 'python ./sim_rpc.py ' + str(portOffsNum) + ' ' + str(rpcPort)
-    if (None != parentURL)
+    if (None != parentURL):
         comstring = comstring + ' ' + parentURL
     rpcProc = subprocess.Popen(comstring, stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
     time.sleep(1)
@@ -161,6 +161,11 @@ def onBoot():
     nState = statecodes.SC_IDLE
 
 def watchdogLoop():
+    global cState
+    global nState
+    global CRAMWatchdogTicked
+    global CRAMWatchdogDoneTick
+    global CRAMWatchdogErrTick
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
             onBoot()
@@ -168,7 +173,7 @@ def watchdogLoop():
             onIdle()
         elif (statecodes.SC_ERROR == nState):
             onError()
-        elif (statecodes.SC_IDLE == cState): or (statecodes.SC_BUSY == cState)
+        elif (statecodes.SC_IDLE == cState) or (statecodes.SC_BUSY == cState):
             time.sleep(8)
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
                 #Next watchdog loop will trigger error handling
