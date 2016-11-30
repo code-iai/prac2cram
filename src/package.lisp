@@ -31,6 +31,7 @@
   (:use :cl :roslisp :prac2cram-srv)
   (:export :prac2cram-argument-invalid-error
            :prac2cram-no-substitutions-error
+           :plan-error
            :prac2cram-server
            :prac2cram-server2
            :query-for-substitute))

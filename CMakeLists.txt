@@ -27,6 +27,7 @@ add_message_files(
   FILES
   ActionRole.msg
   ActionCore.msg
+  CRAMTick.msg
   Task.msg
 
 )

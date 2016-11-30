@@ -29,6 +29,9 @@
 
 (in-package :prac2cram)
 
+(defparameter plan-running (cpl:make-fluent :run-fluent :value nil))
+(defparameter plan-error (cpl:make-fluent :err-fluent :value nil))
+
 ;;; Make a test plan for debugging purposes.
 ;;; Note that for each plan we want prac2cram to be able to call we need:
 ;;;   the plan itself;
@@ -95,13 +98,14 @@
                                          ;; in the future, compute arguments for a plan just before running it.
                                          (declare (ignore plan-arg-fn))
                                          (apply plan-fn args))
-                                       plan-fns plan-arg-fns args-list))))
+                                       plan-fns plan-arg-fns args-list)
+                               (setf (cpl:value plan-running) nil))))
     (values started statuses messages plan-strings)))
 
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
     (roslisp:ros-info (basics-system) "Received service call with these parameters: Tasks: ~a" tasks)
-    (if cpl:*task-tree*   ;; test if another cram plan is running; *task-tree* will be non-NIL if so
+    (if plan-running
       (roslisp:make-response :status -1
                              :individual_status (vector)
                              :messages (vector "Another cram plan is running. Wait for it to finish and send the request again.")
@@ -109,20 +113,48 @@
       (multiple-value-bind (plan-started statuses messages plan-strings)
                            (find-and-start-plans tasks *plan-matchings*)  ;; identify plan based on action_core_name
         (if plan-started
-          (roslisp:make-response :status 0
-                                 :individual_status (coerce statuses 'list)
-                                 :messages (coerce messages 'list)
-                                 :plan_strings (coerce plan-strings 'list))
+          (progn
+            (setf (cpl:value plan-running) T)
+            (roslisp:make-response :status 0
+                                   :individual_status (coerce statuses 'list)
+                                   :messages (coerce messages 'list)
+                                   :plan_strings (coerce plan-strings 'list)))
           (roslisp:make-response :status -1
                                  :individual_status (coerce statuses 'list)
                                  :messages (coerce messages 'list)
                                  :plan_strings (coerce plan-strings 'list)))))))
+(defparameter *pub-tick* nil)
+(defun ensure-tick-publisher ()
+  (if *pub-tick*
+    *pub-tick*
+    (progn
+      (setf *pub-tick* (roslisp:advertise "cramticks" "prac2cram/CRAMTick" :latch nil))
+      (roslisp:wait-duration 2.0)
+      *pub-tick*)))
 
+(defun destroy-tick-publisher ()
+  (setf *pub-tick* nil))
+
+(roslisp-utilities:register-ros-cleanup-function destroy-tick-publisher)
+
+(defun send-tick (&rest args)
+  (declare (ignore args))
+  (let* ((done (not (cpl:value plan-running)))
+         (error (cpl:value plan-error))
+         (done (if done 1 0))
+         (error (if error 1 0)))
+    (roslisp:publish (ensure-tick-publisher)
+                     (roslisp:make-message "prac2cram/CRAMTick"
+                                           :done done
+                                           :error error))))
 
 (defun prac2cram-server (plan-matchings &optional (prac-url "http://localhost:1234"))
   ;; put the debugging/test plan into the plan-matchings alist to ensure it's there.
   (let* ((plan-matchings (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) plan-matchings)))
     (setf *prac-url* prac-url)
+    (setf (cpl:value plan-running) nil)
+    ;; Subscribe to clock to create a tick-thread-- notify the ROS world that this prac2cram server is still running
+    (roslisp:subscribe "clock" "rosgraph_msgs/Clock" send-tick)
     (if (not (roslisp:wait-for-service "/prac2cram_http_bridge" 0.1))
       (sb-thread:make-thread (lambda ()
                                ;;(sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge"))
