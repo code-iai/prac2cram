@@ -84,6 +84,7 @@ print "Setting INT/TERM sig handle ..."
 
 def exit_gracefully(signum, frame):
     global cState, nState
+    print "RECEIVED SIGINT OR SIGTERM, WILL EXIT NOW"
     cState = statecodes.SC_EXIT
     nState = statecodes.SC_EXIT
     shutdownChildren()
@@ -123,6 +124,7 @@ def onError():
     #Tell parent (if any) that this instance is currently unavailable
     notifyParentOfState(cState)
     #Need to restart everything
+    print "ON ERROR TRIGGERED, WILL RESTART CHILDREN"
     shutdownChildren()
     #Gazebo takes a while to actually exit
     time.sleep(15)
@@ -182,6 +184,10 @@ def watchdogLoop():
         elif (statecodes.SC_IDLE == cState) or (statecodes.SC_BUSY == cState):
             time.sleep(8)
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
+                if(False == CRAMWatchdogTicked):
+                    print "CRAM DIDN'T SEND TICKS IN TIME."
+                elif(True == CRAMWatchdogErrTick):
+                    print "RECEIVED ERRTICK, WILL RESTART."
                 #Next watchdog loop will trigger error handling
                 nState = statecodes.SC_ERROR
             #BUSY state now handled by sim_rpc
