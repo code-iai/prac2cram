@@ -63,6 +63,7 @@ CRAMWatchdogErrTick = False
 CRAMWatchdogDoneTick = False
 
 def shutdownChildren():
+    global rpcProc, simRPC, simClient, cramProc, gazeboProc, roscoreProc
     rospy.signal_shutdown("Shutting down simulation process tree.")
     if (rpcProc != None):
         os.killpg(os.getpgid(rpcProc.pid), signal.SIGTERM)
@@ -82,6 +83,7 @@ def shutdownChildren():
 print "Setting INT/TERM sig handle ..."
 
 def exit_gracefully(signum, frame):
+    global cState, nState
     cState = statecodes.SC_EXIT
     nState = statecodes.SC_EXIT
     shutdownChildren()
@@ -91,6 +93,7 @@ signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
 
 def CRAMTickCallback(cramTick):
+    global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
     CRAMWatchdogTicked = True
     if (0 != cramTick.error):
         CRAMWatchdogErrTick = True
@@ -98,10 +101,13 @@ def CRAMTickCallback(cramTick):
         CRAMWatchdogDoneTick = True    
 
 def notifyParentOfState(state):
+    global parentRPC, portOffsNum
     if (None != parentRPC):
         parentRPC.notify_state({"childId": portOffsNum, "state": state})
 
 def onIdle():
+    global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
+    global cState
     #Setup watchdog to track ticks from CRAM
     CRAMWatchdogTicked = False
     CRAMWatchdogErrTick = False
@@ -112,6 +118,7 @@ def onIdle():
     notifyParentOfState(cState)
     
 def onError():
+    global cState, nState
     cState = statecodes.SC_ERROR
     #Tell parent (if any) that this instance is currently unavailable
     notifyParentOfState(cState)
@@ -123,6 +130,9 @@ def onError():
     nState = statecodes.SC_BOOTING
 
 def onBoot():
+    global cState, nState
+    global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL
+    global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
     #Run roscore
     print "Running roscore ..."
@@ -161,11 +171,7 @@ def onBoot():
     nState = statecodes.SC_IDLE
 
 def watchdogLoop():
-    global cState
-    global nState
-    global CRAMWatchdogTicked
-    global CRAMWatchdogDoneTick
-    global CRAMWatchdogErrTick
+    global cState, nState, CRAMWatchdogTicked, CRAMWatchdogDoneTick, CRAMWatchdogErrTick
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
             onBoot()

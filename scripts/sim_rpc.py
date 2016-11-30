@@ -47,6 +47,7 @@ rpc_server = RPCServerGreenlets(
 )
 
 def notifyParentOfState(state):
+    global parentRPC, portOffsNum
     if (None != parentRPC):
         parentRPC.notify_state({"childId": portOffsNum, "state": state})
 
@@ -55,6 +56,7 @@ def sendMongoLogsToParent():
     return None
 
 def onDone():
+    global mongoProc, simRunning
     #If running, terminate mongo logging
     if (None != mongoProc):
         os.killpg(os.getpgid(mongoProc), signal.SIGTERM)
@@ -65,6 +67,7 @@ def onDone():
 
 @dispatcher.public
 def start_simulation(tasks_RPC):
+    global simRunning, portOffsNum, mongoProc
     if (True == simRunning):
         return {"childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet."}
 
@@ -114,6 +117,7 @@ def start_simulation(tasks_RPC):
     return {"childId": portOffsNum, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def CRAMTickCallback(cramTick):
+    global doneTicks, simRunning
     if (False == simRunning) or (0 == cramTick.done):
         doneTicks = 0
     elif (True == simRunning) and (0 != cramTick.done) and (4 > doneTicks):
