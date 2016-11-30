@@ -1,5 +1,8 @@
+import os
 import sys
+import time
 import signal
+import subprocess
 
 import gevent
 import gevent.wsgi
@@ -14,6 +17,7 @@ from tinyrpc import RPCClient
 import rospy
 import statecodes
 from prac2cram.msg import CRAMTick
+from prac2cram.srv import Prac2Cram
 from p2c_rosaux import getROSTasks, getStringList
 
 portOffsNum = int(sys.argv[1])
@@ -108,7 +112,7 @@ def start_simulation(tasks_RPC):
     if (None != response):
         #Rosrun mongodb logger (but do this only when needed, ie. right before a sim begins)
         simRunning = True
-        mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=subprocess.NONE, shell=True, stderr=subprocess.NONE, preexec_fn=os.setsid)
+        mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
         message = "Started simulation."
         messages = getStringList(response.messages)
         planstrings = getStringList(response.plan_strings)
@@ -126,8 +130,8 @@ def CRAMTickCallback(cramTick):
         doneTicks = 0
         onDone()
 
-rospy.init_node('sim_rpc')
-rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
+#rospy.init_node('sim_rpc')
+#rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
 
 def exit_gracefully(signum, frame):
     sys.exit(0)

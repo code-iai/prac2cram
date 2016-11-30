@@ -137,16 +137,17 @@
 
 (roslisp-utilities:register-ros-cleanup-function destroy-tick-publisher)
 
-(defun send-tick (&rest args)
-  (declare (ignore args))
-  (let* ((done (not (cpl:value plan-running)))
-         (error (cpl:value plan-error))
-         (done (if done 1 0))
-         (error (if error 1 0)))
-    (roslisp:publish (ensure-tick-publisher)
-                     (roslisp:make-message "prac2cram/CRAMTick"
-                                           :done done
-                                           :error error))))
+(defun send-tick ()
+  (loop
+    (let* ((done (not (cpl:value plan-running)))
+           (error (cpl:value plan-error))
+           (done (if done 1 0))
+           (error (if error 1 0)))
+      (roslisp:publish (ensure-tick-publisher)
+                       (roslisp:make-message "prac2cram/CRAMTick"
+                                             :done done
+                                             :error error))
+      (roslisp:wait-duration 1))))
 
 (defun prac2cram-server (plan-matchings &optional (prac-url "http://localhost:1234"))
   ;; put the debugging/test plan into the plan-matchings alist to ensure it's there.
@@ -154,7 +155,7 @@
     (setf *prac-url* prac-url)
     (setf (cpl:value plan-running) nil)
     ;; Subscribe to clock to create a tick-thread-- notify the ROS world that this prac2cram server is still running
-    (roslisp:subscribe "clock" "rosgraph_msgs/Clock" #'send-tick)
+    (sb-thread:make-thread (lambda () (send-tick)))
     (if (not (roslisp:wait-for-service "/prac2cram_http_bridge" 0.1))
       (sb-thread:make-thread (lambda ()
                                ;;(sb-ext:run-program "rosrun" (list "prac2cram" "prac2cram_HTTP_bridge"))
