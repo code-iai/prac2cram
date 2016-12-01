@@ -7,7 +7,6 @@ import time
 import signal
 import subprocess
 
-import rospy
 import statecodes
 from prac2cram.msg import CRAMTick
 
@@ -17,6 +16,11 @@ import gevent.queue
 from tinyrpc.protocols.jsonrpc import JSONRPCProtocol
 from tinyrpc.transports.http import HttpPostClientTransport
 from tinyrpc import RPCClient
+
+from tinyrpc.transports.wsgi import WsgiServerTransport
+from tinyrpc.server.gevent import RPCServerGreenlets
+from tinyrpc.dispatch import RPCDispatcher
+
 
 portOffsNum = int(sys.argv[1])
 packageName = str(sys.argv[2])
@@ -32,6 +36,7 @@ gazeboPort = 11345 + portOffsNum
 rosPort = 11311 + portOffsNum
 rosBridgePort = 9090 + portOffsNum
 rpcPort = 5050 + portOffsNum
+instPort = 5150 + portOffsNum
 
 os.environ["GAZEBO_MASTER_URI"] = "http://localhost:" + str(gazeboPort)
 os.environ["ROS_MASTER_URI"] = "http://localhost:" + str(rosPort)
@@ -62,9 +67,21 @@ CRAMWatchdogTicked = False
 CRAMWatchdogErrTick = False
 CRAMWatchdogDoneTick = False
 
+# start wsgi server as a background-greenlet
+dispatcher = RPCDispatcher()
+transport = WsgiServerTransport(queue_class=gevent.queue.Queue)
+
+wsgi_server = gevent.wsgi.WSGIServer(('0.0.0.0', instPort), transport.handle)
+gevent.spawn(wsgi_server.serve_forever)
+
+rpc_server = RPCServerGreenlets(
+    transport,
+    JSONRPCProtocol(),
+    dispatcher
+)
+
 def shutdownChildren():
     global rpcProc, simRPC, simClient, cramProc, gazeboProc, roscoreProc
-    rospy.signal_shutdown("Shutting down simulation process tree.")
     if (rpcProc != None):
         os.killpg(os.getpgid(rpcProc.pid), signal.SIGTERM)
         rpcProc = None
@@ -93,6 +110,7 @@ def exit_gracefully(signum, frame):
 signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
 
+@dispatcher.public
 def CRAMTickCallback(cramTick):
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
     CRAMWatchdogTicked = True
@@ -133,7 +151,7 @@ def onError():
 
 def onBoot():
     global cState, nState
-    global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL
+    global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
     #Run roscore
@@ -147,16 +165,13 @@ def onBoot():
     setParProc = subprocess.call('rosparam set /port ' + str(rosBridgePort), shell=True)
     
     #Run sim_rpc
-    comstring = 'python ./sim_rpc.py ' + str(portOffsNum) + ' ' + str(rpcPort)
+    comstring = 'python ./sim_rpc.py ' + str(portOffsNum) + ' ' + str(rpcPort) + ' ' + str(instPort)
     if (None != parentURL):
         comstring = comstring + ' ' + parentURL
     rpcProc = subprocess.Popen(comstring, stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
     time.sleep(1)
     simClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(simURL))
     simRPC = simClient.get_proxy()
-    #Setup the listener to ticks from CRAM
-    rospy.init_node('sim_inst_mng')
-    rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
 
     #Roslaunch gazebo instance and associated nodes
     print "Starting gazebo ..."
@@ -190,7 +205,7 @@ def watchdogLoop():
                     print "RECEIVED ERRTICK, WILL RESTART."
                 #Next watchdog loop will trigger error handling
                 nState = statecodes.SC_ERROR
-            #BUSY state now handled by sim_rpc
+            #BUSY state for now handled by sim_rpc
             #elif (True == CRAMWatchdogDoneTick) and (statecodes.SC_BUSY == cState):
             #    #Next watchdog loop will transition to idle
             #    nState = statecodes.SC_IDLE
@@ -199,11 +214,11 @@ def watchdogLoop():
             CRAMWatchdogTicked = False
 
 #def rpcLoop(rpc_server):
-#    rpc_server.serve_forever()
+#    watchdogLoop()
 
-#thread = Thread(target = rpcLoop, args = (rpc_server,))
-#thread.setDaemon(True)
-#thread.start()
+thread = Thread(target = watchdogLoop)
+thread.setDaemon(True)
+thread.start()
 
-watchdogLoop()
+rpc_server.serve_forever()
 

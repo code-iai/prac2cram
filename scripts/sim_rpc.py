@@ -22,12 +22,17 @@ from p2c_rosaux import getROSTasks, getStringList
 
 portOffsNum = int(sys.argv[1])
 rpcPort = int(sys.argv[2])
+instPort = int(sys.argv[3])
+
+instURL = "http://localhost:" + str(instPort)
+instClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(instURL))
+instRPC = instClient.get_proxy()
 
 parentURL = None
 parentClient = None
 parentRPC = None
-if (3 < len(sys.argv)):
-    parentURL = sys.argv[3]
+if (4 < len(sys.argv)):
+    parentURL = sys.argv[4]
     parentClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(parentURL))
     parentRPC = parentClient.get_proxy()
 
@@ -126,6 +131,7 @@ def start_simulation(tasks_RPC):
 
 def CRAMTickCallback(cramTick):
     global doneTicks, simRunning
+    instRPC.CRAMTickCallback(cramTick)
     if (False == simRunning) or (0 == cramTick.done):
         doneTicks = 0
     elif (True == simRunning) and (0 != cramTick.done) and (4 > doneTicks):
