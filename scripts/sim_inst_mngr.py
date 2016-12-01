@@ -6,6 +6,7 @@ import sys
 import time
 import signal
 import subprocess
+from threading import Thread
 
 import statecodes
 from prac2cram.msg import CRAMTick
