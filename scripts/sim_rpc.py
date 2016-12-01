@@ -59,12 +59,16 @@ def sendMongoLogsToParent():
     #TODO: insert some notification to the parent here that mongo logs are available
     return None
 
-def onDone():
-    global mongoProc, simRunning
-    #If running, terminate mongo logging
-    if (None != mongoProc):
-        os.killpg(os.getpgid(mongoProc), signal.SIGTERM)
+def stopMongo():
+    global mongoProc
+    if(None != mongoProc):
+        os.killpg(os.getpgid(mongoProc.pid), signal.SIGTERM)
         mongoProc = None
+
+def onDone():
+    global simRunning
+    #If running, terminate mongo logging
+    stopMongo()
     simRunning = False
     sendMongoLogsToParent()
     notifyParentOfState(statecodes.SC_IDLE)
@@ -134,6 +138,7 @@ rospy.init_node('sim_rpc')
 rospy.Subscriber("cramticks", CRAMTick, CRAMTickCallback)
 
 def exit_gracefully(signum, frame):
+    stopMongo()
     sys.exit(0)
 signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
