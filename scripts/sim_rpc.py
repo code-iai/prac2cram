@@ -82,7 +82,7 @@ def onDone():
 def prac2cram_client(tasks_RPC):
     global simRunning, portOffsNum, mongoProc
     if (True == simRunning):
-        return {"childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet."}
+        return {"status": -1, "childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet.", "messages": [""], "plan_strings": [""]}
 
     # Maybe not needed, since the members have the same names, but better safe etc.
     tasks_ROS = getROSTasks(tasks_RPC)
@@ -115,19 +115,23 @@ def prac2cram_client(tasks_RPC):
     except rospy.ServiceException, e:
         response = None
         status = -1
-        message = "Service call failed with the following error: " + str(e)
+        messages = ["Service call failed with the following error: " + str(e)]
         retcode = statecodes.RC_ROSSRVFAIL
         state = statecodes.SC_IDLE
 
     if (None != response):
         #Rosrun mongodb logger (but do this only when needed, ie. right before a sim begins)
-        simRunning = True
-        mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
-        message = "Started simulation."
+        if (0 == status):
+            simRunning = True
+            mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
+            message = "Started simulation."
+            #This should not be needed: the parent can deduce the BUSY state based on the return
+            #notifyParentOfState(statecodes.SC_BUSY)
+        else:
+            state = statecodes.SC_IDLE
+            message = "Did not start simulation. See messages for reasons."
         messages = getStringList(response.messages)
         planstrings = getStringList(response.plan_strings)
-        #This should not be needed: the parent can deduce the BUSY state based on the return
-        #notifyParentOfState(statecodes.SC_BUSY)
     return {"status": status, "childId": portOffsNum, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def CRAMTickCallback(cramTick):
