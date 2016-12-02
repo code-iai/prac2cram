@@ -79,7 +79,7 @@ def onDone():
     notifyParentOfState(statecodes.SC_IDLE)
 
 @dispatcher.public
-def start_simulation(tasks_RPC):
+def prac2cram_client(tasks_RPC):
     global simRunning, portOffsNum, mongoProc
     if (True == simRunning):
         return {"childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet."}
@@ -131,7 +131,7 @@ def start_simulation(tasks_RPC):
 
 def CRAMTickCallback(cramTick):
     global doneTicks, simRunning
-    instRPC.CRAMTickCallback(cramTick)
+    instRPC.CRAMTickCallback({"done": cramTick.done, "error": cramTick.error})
     if (False == simRunning) or (0 == cramTick.done):
         doneTicks = 0
     elif (True == simRunning) and (0 != cramTick.done) and (4 > doneTicks):

@@ -115,9 +115,9 @@ signal.signal(signal.SIGTERM, exit_gracefully)
 def CRAMTickCallback(cramTick):
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
     CRAMWatchdogTicked = True
-    if (0 != cramTick.error):
+    if (0 != cramTick["error"]):
         CRAMWatchdogErrTick = True
-    if (0 != cramTick.done):
+    if (0 != cramTick["done"]):
         CRAMWatchdogDoneTick = True    
 
 def notifyParentOfState(state):
