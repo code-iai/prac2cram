@@ -91,8 +91,9 @@
          (plan-fns (mapcar #'fourth plan-data))
          (plan-arg-fns (mapcar #'fifth plan-data))
          (args-list (mapcar #'sixth plan-data))
-         (started (if (member -1 statuses) -1 0)))
-    (if (equal started 0)
+         (started (if (member -1 statuses) nil T)))
+    (format T "STATUSES ~a STARTED ~a ~%" statuses started)
+    (if started
       (sb-thread:make-thread (lambda ()
                                (mapcar (lambda (plan-fn plan-arg-fn args)
                                          ;; in the future, compute arguments for a plan just before running it.
