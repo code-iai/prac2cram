@@ -110,6 +110,7 @@ def prac2cram_client(tasks_RPC):
         response = prac2cram(tasks_ROS)
         # formal style
         #resp2 = prac2cram.call(Prac2CramRequest(params))
+        status = response.status
 
     except rospy.ServiceException, e:
         response = None
@@ -127,7 +128,7 @@ def prac2cram_client(tasks_RPC):
         planstrings = getStringList(response.plan_strings)
         #This should not be needed: the parent can deduce the BUSY state based on the return
         #notifyParentOfState(statecodes.SC_BUSY)
-    return {"childId": portOffsNum, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
+    return {"status": status, "childId": portOffsNum, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def CRAMTickCallback(cramTick):
     global doneTicks, simRunning
