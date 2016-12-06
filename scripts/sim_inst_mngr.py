@@ -30,7 +30,11 @@ parentPort = None
 if (3 < len(sys.argv)):
     parentPort = sys.argv[3]
 
-print 'Starting subprocess of portIdx ' + str(portOffsNum) + ' and type ' + str(packageName)
+ownId = portOffsNum
+if(4 < len(sys.argv)):
+    ownId = sys.argv[4]
+
+print 'Starting subprocess of portIdx ' + str(portOffsNum) + ' and type ' + str(packageName) + ' with id ' + str(ownId)
 
 #Setup port parameters
 gazeboPort = 11345 + portOffsNum
@@ -121,9 +125,9 @@ def CRAMTickCallback(cramTick):
         CRAMWatchdogDoneTick = True    
 
 def notifyParentOfState(state):
-    global parentRPC, portOffsNum
+    global parentRPC, ownId
     if (None != parentRPC):
-        parentRPC.notify_state({"childId": portOffsNum, "state": state})
+        parentRPC.notify_state({"childId": ownId, "state": state})
 
 def onIdle():
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
@@ -152,7 +156,7 @@ def onError():
 
 def onBoot():
     global cState, nState
-    global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort
+    global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
     #Run roscore
@@ -168,7 +172,7 @@ def onBoot():
     #Run sim_rpc
     comstring = 'python ./sim_rpc.py ' + str(portOffsNum) + ' ' + str(rpcPort) + ' ' + str(instPort)
     if (None != parentURL):
-        comstring = comstring + ' ' + parentURL
+        comstring = comstring + ' ' + parentURL + ' ' + ownId
     rpcProc = subprocess.Popen(comstring, stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
     time.sleep(1)
     simClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(simURL))

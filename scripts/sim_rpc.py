@@ -36,6 +36,10 @@ if (4 < len(sys.argv)):
     parentClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(parentURL))
     parentRPC = parentClient.get_proxy()
 
+ownId = portOffsNum
+if (5 < len(sys.argv):
+    ownId = sys.argv[5]
+
 mongoProc = None
 
 simRunning = False
@@ -56,9 +60,9 @@ rpc_server = RPCServerGreenlets(
 )
 
 def notifyParentOfState(state):
-    global parentRPC, portOffsNum
+    global parentRPC, ownId
     if (None != parentRPC):
-        parentRPC.notify_state({"childId": portOffsNum, "state": state})
+        parentRPC.notify_state({"childId": ownId, "state": state})
 
 def sendMongoLogsToParent():
     #TODO: insert some notification to the parent here that mongo logs are available
@@ -80,9 +84,9 @@ def onDone():
 
 @dispatcher.public
 def prac2cram_client(tasks_RPC):
-    global simRunning, portOffsNum, mongoProc
+    global simRunning, ownId, mongoProc
     if (True == simRunning):
-        return {"status": -1, "childId": portOffsNum, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet.", "messages": [""], "plan_strings": [""]}
+        return {"status": -1, "childId": ownId, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet.", "messages": [""], "plan_strings": [""]}
 
     # Maybe not needed, since the members have the same names, but better safe etc.
     tasks_ROS = getROSTasks(tasks_RPC)
@@ -123,7 +127,7 @@ def prac2cram_client(tasks_RPC):
         #Rosrun mongodb logger (but do this only when needed, ie. right before a sim begins)
         if (0 == status):
             simRunning = True
-            mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(portOffsNum), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
+            mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(ownId), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
             message = "Started simulation."
             #This should not be needed: the parent can deduce the BUSY state based on the return
             #notifyParentOfState(statecodes.SC_BUSY)
@@ -132,7 +136,7 @@ def prac2cram_client(tasks_RPC):
             message = "Did not start simulation. See messages for reasons."
         messages = getStringList(response.messages)
         planstrings = getStringList(response.plan_strings)
-    return {"status": status, "childId": portOffsNum, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
+    return {"status": status, "childId": ownId, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
 
 def CRAMTickCallback(cramTick):
     global doneTicks, simRunning
