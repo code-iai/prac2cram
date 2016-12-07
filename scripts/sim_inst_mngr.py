@@ -134,7 +134,7 @@ def MonitorLifetime():
     global cState, nState, SIMLifeTime
     while True:
         time.sleep(1)
-        if cState = statecodes.SC_IDLE:
+        if cState == statecodes.SC_IDLE:
             SIMLifeTime = SIMLifeTime - 1
         else:
             SIMLifeTime = 60*60
@@ -210,7 +210,7 @@ def onBoot():
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
     SIMLifeTime = 60*60
-    nLTThread = new Thread(target = MonitorLifetime)
+    nLTThread = Thread(target = MonitorLifetime)
     nLTThread.setDaemon(True)
     nLTThread.start()
 

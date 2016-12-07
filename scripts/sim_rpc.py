@@ -37,7 +37,7 @@ if (4 < len(sys.argv)):
     parentRPC = parentClient.get_proxy()
 
 ownId = portOffsNum
-if (5 < len(sys.argv):
+if (5 < len(sys.argv)):
     ownId = sys.argv[5]
 
 mongoProc = None
