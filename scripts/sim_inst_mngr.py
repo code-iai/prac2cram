@@ -145,6 +145,7 @@ def MonitorLifetime():
     cState = statcodes.SC_BUSY
     #And this is to reboot as soon as the watchdog loop ticks by
     nState = statecodes.SC_BOOTING
+    print "Spent 1h in IDLE state. Will now reboot."
 
 def onIdle():
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
