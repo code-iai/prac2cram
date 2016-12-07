@@ -129,7 +129,7 @@ def execute_command(cmd):
 for k, p in zip(childNums, childPackages):
     newId = createId()
     newAlias = createId()
-    cmdStr = 'python sim_inst_mngr.py ' + str(k) + ' ' + str(p) + ' ' + ownPort + newId
+    cmdStr = 'python sim_inst_mngr.py ' + str(k) + ' ' + str(p) + ' ' + str(ownPort) + ' ' + str(newId)
     print 'Opening subprocess ' + cmdStr
     childIds.append(newId)
     childStates[newId] = statecodes.SC_BOOTING
@@ -142,9 +142,9 @@ for k, p in zip(childNums, childPackages):
     print 'Connecting to that instance\'s RPC'
     rpcURL = "http://localhost:" + str(5050 + k)
     rpcClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(rpcURL))
-    childRPC = rpclient.get_proxy()
-    childRPCNodes[childId] = rpcClient
-    childRPCs[childId] = childRPC
+    childRPC = rpcClient.get_proxy()
+    childRPCNodes[newId] = rpcClient
+    childRPCs[newId] = childRPC
 
 def exit_gracefully(sig, frame):
     for s in subprocesses:
