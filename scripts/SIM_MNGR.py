@@ -187,7 +187,7 @@ def prac2cram_client(command):
             expectedClient = "not" + clientId
             if childId in childClients:
                 expectedClient = childClients[childId]
-            if expectedClient != clientId
+            if expectedClient != clientId:
                 return {"status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
             return {"status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
