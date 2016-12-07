@@ -174,7 +174,7 @@ def prac2cram_client(command):
     clientId = None
     if "clientId" in command:
         clientId = command["clientId"]
-    else
+    else:
         return {"status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
     if "tasks" in command:
         tasksRPC = command["tasks"]
