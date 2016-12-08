@@ -182,7 +182,7 @@ def notify_state(chSt):
     state = chSt["state"]
     if childId in childStates:
         childStates[childId] = state
-        print str(datetime.datetime.now().time()) + "ChildId " + str(childId) + " passed to state " + statecodes.stateName(state)
+        print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(state)
         #TODO: Notify client if one exists-- REMEMBER TO USE THE CHILDALIAS FOR THAT
     else:
         print "Received notification from unknown childId " + str(childId)
@@ -256,7 +256,7 @@ def prac2cram_client(command):
     result["state"] = statecodes.stateName(result["state"])
     if ("status" in result) and (0 == result["status"]):
         childStates[childId] = statecodes.SC_BUSY
-        print str(datetime.datetime.now().time()) + "ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
+        print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
     return {"status": "Sent request to simulation, see result.", "result": result}
 
 rpc_server.serve_forever()
