@@ -234,7 +234,7 @@ def prac2cram_client(command):
                 break
         if None == childId:
             return {"status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
-        childAlias = childAliases[childId]
+    childAlias = childAliases[childId]
     childClientConnection[childId] = 5*60
     if clientId not in clientChildren:
         clientChildren[clientId] = []
