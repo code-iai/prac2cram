@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import signal
+import datetime
 import subprocess
 
 import string
@@ -51,11 +52,14 @@ childThreads = []
 
 childStates = {}
 childIds = []
+child2PackageMap = {}
+
 # WARNING: Remote clients must only know a child's alias. They must never learn the childId.
 childAliases = {}
 childAlias2Id = {}
 childClients = {}
 childClientConnection = {}
+clientChildren = {}
 
 childRPCNodes = {}
 childRPCs = {}
@@ -89,16 +93,25 @@ def findWorldsByAction(firstAction):
     return worlds
 
 def findFreeChildInWorld(w):
-    global childPackages, childIds, childStates
+    global childPackages, childIds, childStates, childClients
     childId = None
     for c, p in zip(childIds, childPackages):
-        if (p == w) and (statecodes.SC_IDLE == childStates[c]):
+        if (p == w) and (statecodes.SC_IDLE == childStates[c]) and (c not in childClients):
+            childId = c
+            break
+    return childId
+
+def findIdleClientChild(clientId, firstAction):
+    global childStates, clientChildren, packageActions, child2PackageMap
+    childId = None
+    for c in clientChildren[clientId]:
+        if (statecodes.SC_IDLE == childStates[c]) and (firstAction in packageActions[child2PackageMap[c]]):
             childId = c
             break
     return childId
 
 def childWatchdog(childId):
-    global childAliases, childAlias2Id, childClientConnection, childStates, childClients
+    global childAliases, childAlias2Id, childClientConnection, childStates, childClients, clientChildren
     alias = childAliases[childId]
     while True:
         time.sleep(1)
@@ -106,13 +119,21 @@ def childWatchdog(childId):
             childClientConnection[childId] = childClientConnection[childId] - 1
         if (0 > childClientConnection[childId]):
             break
-    childClients.pop(childId, None)
+    clientId = childClients.pop(childId, None)
+    if (clientId != None) and (clientId in clientChildren):
+        clientChildren[clientId].remove(childId)
+        if (0 == len(clientChildren[clientId])):
+            clientChildren.pop(clientId, None)
+            print "Client " + str(clientId) + " timed out on all child connections, will remove from records."
+    print "Child " + str(childId) + " disconnected from client " + str(clientId)
+    #TODO: this is a good place to reset the child, actually
     #Create new child alias
     childAliases.pop(childId, None)
     childAlias2Id.pop(alias, None)
     alias = createId()
     childAliases[childId] = alias
     childAlias2Id[alias] = childId
+    print "Ended watchdog for child " + str(childId) + "."
 
 def execute_command(cmd):
     global subprocesses
@@ -132,6 +153,7 @@ for k, p in zip(childNums, childPackages):
     cmdStr = 'python sim_inst_mngr.py ' + str(k) + ' ' + str(p) + ' ' + str(ownPort) + ' ' + str(newId)
     print 'Opening subprocess ' + cmdStr
     childIds.append(newId)
+    child2PackageMap[newId] = p
     childStates[newId] = statecodes.SC_BOOTING
     childAliases[newId] = newAlias
     childAlias2Id[newAlias] = newId
@@ -160,14 +182,14 @@ def notify_state(chSt):
     state = chSt["state"]
     if childId in childStates:
         childStates[childId] = state
-        print "ChildId " + str(childId) + " passed to state " + statecodes.stateName(state)
+        print str(datetime.datetime.now().time()) + "ChildId " + str(childId) + " passed to state " + statecodes.stateName(state)
         #TODO: Notify client if one exists-- REMEMBER TO USE THE CHILDALIAS FOR THAT
     else:
         print "Received notification from unknown childId " + str(childId)
 
 @dispatcher.public
 def prac2cram_client(command):
-    global childClients, childAliases, childClientConnection, childRPCs
+    global childClients, childAliases, childClientConnection, childRPCs, clientChildren
     childAlias = None
     childId = None
     tasksRPC = None
@@ -180,7 +202,11 @@ def prac2cram_client(command):
         tasksRPC = command["tasks"]
     else:
         return {"status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
+    firstAction = findFirstAction(tasksRPC)
+    if None == firstAction:
+        return {"status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
     if ("childId" in command) and ("" != command["childId"]):
+        #If the command names a child (using its alias) to use, check that this client has a connection to that child
         childAlias = command["childId"]
         if childAlias in childAlias2Id:
             childId = childAlias2Id[childAlias]
@@ -191,11 +217,14 @@ def prac2cram_client(command):
                 return {"status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
             return {"status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
+    else if (clientId in clientChildren):
+        #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
+        #and are in a world that implements the required first action.
+        childId = findIdleClientChild(clientId, firstAction)
     else:
-        #Find a suitable child, ie. find a childId and an alias
-        firstAction = findFirstAction(tasksRPC)
-        if None == firstAction:
-            return {"status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
+        childId = None
+    if (None == childId):
+        #Find a free child in a world that implements the first action
         worldsToTry = findWorldsByAction(firstAction)
         if None == worldsToTry:
             return {"status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
@@ -207,7 +236,14 @@ def prac2cram_client(command):
             return {"status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
         childAlias = childAliases[childId]
     childClientConnection[childId] = 5*60
+    if clientId not in clientChildren:
+        clientChildren[clientId] = []
+        print "Client " + str(clientId) + " has been added to the record."
+    if childId not in clientChildren[clientId]:
+        clientChildren[clientId].append(childId)
+        print "Registering child " + str(childId) + " as connected to client " + str(clientId) + "."
     if childId not in childClients:
+        print "Started a watchdog for child " + str(childId) + "."
         childClients[childId] = clientId
         nThread = Thread(target=childWatchdog, args=(childId,))
         nThread.setDaemon(True)
@@ -217,9 +253,10 @@ def prac2cram_client(command):
     # Web client must never learn the child's Id, or else they could spoof notifications of state.
     result["childId"] = childAlias
     result["retcode"] = statecodes.retcodeName(result["retcode"])
-    result["state"] = statecodes.retcodeName(result["state"])
+    result["state"] = statecodes.stateName(result["state"])
     if ("status" in result) and (0 == result["status"]):
         childStates[childId] = statecodes.SC_BUSY
+        print str(datetime.datetime.now().time()) + "ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
     return {"status": "Sent request to simulation, see result.", "result": result}
 
 rpc_server.serve_forever()

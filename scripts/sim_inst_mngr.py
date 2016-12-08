@@ -177,6 +177,7 @@ def onBoot():
     global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
+    notifyParentOfState(cState)
     #Run roscore
     print "Running roscore ..."
     roscoreProc = subprocess.Popen('roscore -p ' + str(rosPort), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
