@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import signal
+import socket
 import subprocess
 
 import gevent
@@ -59,6 +60,12 @@ rpc_server = RPCServerGreenlets(
     dispatcher
 )
 
+def get_ip_address():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return s.getsockname()[0]
+ROSBridgeAddress = "http://" + str(get_ip_address()) + ":" + str(9090 + portOffsNum)
+
 def notifyParentOfState(state):
     global parentRPC, ownId
     if (None != parentRPC):
@@ -86,7 +93,7 @@ def onDone():
 def prac2cram_client(tasks_RPC):
     global simRunning, ownId, mongoProc
     if (True == simRunning):
-        return {"status": -1, "childId": ownId, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet.", "messages": [""], "plan_strings": [""]}
+        return {"status": -1, "childId": ownId, "retcode": statecodes.RC_NOTREADY, "state": statecodes.SC_BUSY, "message": "Not ready yet.", "messages": [""], "plan_strings": [""], "visualizationIP" : ROSBridgeAddress}
 
     # Maybe not needed, since the members have the same names, but better safe etc.
     tasks_ROS = getROSTasks(tasks_RPC)
@@ -136,7 +143,7 @@ def prac2cram_client(tasks_RPC):
             message = "Did not start simulation. See messages for reasons."
         messages = getStringList(response.messages)
         planstrings = getStringList(response.plan_strings)
-    return {"status": status, "childId": ownId, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings}
+    return {"status": status, "childId": ownId, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings, "visualizationIP" : ROSBridgeAddress}
 
 def CRAMTickCallback(cramTick):
     global doneTicks, simRunning
