@@ -217,7 +217,7 @@ def prac2cram_client(command):
                 return {"status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
             return {"status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
-    else if (clientId in clientChildren):
+    elif (clientId in clientChildren):
         #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
         #and are in a world that implements the required first action.
         childId = findIdleClientChild(clientId, firstAction)
