@@ -220,13 +220,13 @@ def onBoot():
     #Roslaunch gazebo instance and associated nodes
     print "Starting gazebo ..."
     gazeboProc = subprocess.Popen('roslaunch ' + packageName + ' start_gazebo.launch', stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
-    time.sleep(20)
+    time.sleep(22)
     print "                ... should be started."
 
     #Roslaunch CRAM
     print "Starting CRAM ..."
     cramProc = subprocess.Popen('rosrun ' + packageName + ' start_cram.sh', stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
-    time.sleep(30)
+    time.sleep(40)
     print "              ... should be started."
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
