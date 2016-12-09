@@ -148,14 +148,14 @@ def childWatchdog(childId):
 def execute_command(cmd):
     global subprocesses
     print 'Exec: ' + cmd
-    pr = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
+    pr = subprocess.Popen(cmd, stdout=None, stderr=subprocess.STDOUT, shell=True, preexec_fn=os.setsid)
     subprocesses.append(pr)
-    while True:
-        time.sleep(1)
-        while True:     
-            lineO = pr.stdout.readline()
-            #print lineO
-            if not lineO: break
+    #while True:
+    #    time.sleep(1)
+    #    while True:     
+    #        lineO = pr.stdout.readline()
+    #        #print lineO
+    #        if not lineO: break
 
 for k, p in zip(childNums, childPackages):
     newId = createId()
