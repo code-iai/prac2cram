@@ -88,6 +88,7 @@ rpc_server = RPCServerGreenlets(
 
 def shutdownChildren():
     global rpcProc, simRPC, simClient, cramProc, gazeboProc, roscoreProc
+    haveToWait = False
     if (rpcProc != None):
         os.killpg(os.getpgid(rpcProc.pid), signal.SIGTERM)
         rpcProc = None
@@ -99,9 +100,15 @@ def shutdownChildren():
     if (gazeboProc != None):
         os.killpg(os.getpgid(gazeboProc.pid), signal.SIGTERM)
         gazeboProc = None
+        haveToWait = True
     if (roscoreProc != None):
         os.killpg(os.getpgid(roscoreProc.pid), signal.SIGTERM)
         roscoreProc = None
+    #Gazebo takes a while to actually exit
+    if haveToWait:
+        time.sleep(15)
+    else
+        time.sleep(5)
 
 print "Setting INT/TERM sig handle ..."
 
@@ -178,9 +185,6 @@ def onError():
     notifyParentOfState(cState)
     #Need to restart everything
     print "ON ERROR TRIGGERED, WILL RESTART CHILDREN"
-    shutdownChildren()
-    #Gazebo takes a while to actually exit
-    time.sleep(15)
     #On next watchdog loop, will (re)boot child processes
     nState = statecodes.SC_BOOTING
 
@@ -188,6 +192,7 @@ def onBoot():
     global cState, nState, SIMLifeTime
     global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
+    shutdownChildren()
     cState = statecodes.SC_BOOTING
     notifyParentOfState(cState)
     #Run roscore
