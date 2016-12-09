@@ -107,7 +107,7 @@ def shutdownChildren():
     #Gazebo takes a while to actually exit
     if haveToWait:
         time.sleep(15)
-    else
+    else:
         time.sleep(5)
 
 print "Setting INT/TERM sig handle ..."
