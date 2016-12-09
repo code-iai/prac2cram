@@ -236,7 +236,7 @@ def onBoot():
     nLTThread.start()
 
 def watchdogLoop():
-    global cState, nState, CRAMWatchdogTicked, CRAMWatchdogDoneTick, CRAMWatchdogErrTick
+    global cState, nState, CRAMWatchdogTicked, CRAMWatchdogDoneTick, CRAMWatchdogErrTick, lastErrMessage
     while statecodes.SC_EXIT != nState:
         if (statecodes.SC_BOOTING == nState):
             onBoot()
