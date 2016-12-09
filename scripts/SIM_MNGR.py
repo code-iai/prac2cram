@@ -69,6 +69,8 @@ clientChildren = {}
 
 childRPCNodes = {}
 childRPCs = {}
+childInstRPCNodes = {}
+childInstRPCs = {}
 
 def createId(size=8, chars=string.ascii_uppercase+string.ascii_lowercase+string.digits):
     return ''.join(random.SystemRandom().choice(chars) for _ in range(size))
@@ -117,7 +119,7 @@ def findIdleClientChild(clientId, firstAction):
     return childId
 
 def childWatchdog(childId):
-    global childAliases, childAlias2Id, childClientConnection, childStates, childClients, clientChildren
+    global childAliases, childAlias2Id, childClientConnection, childStates, childClients, clientChildren, childInstRPCs
     alias = childAliases[childId]
     while True:
         time.sleep(1)
@@ -132,13 +134,15 @@ def childWatchdog(childId):
             clientChildren.pop(clientId, None)
             print "Client " + str(clientId) + " timed out on all child connections, will remove from records."
     print "Child " + str(childId) + " disconnected from client " + str(clientId)
-    #TODO: this is a good place to reset the child, actually
     #Create new child alias
     childAliases.pop(childId, None)
     childAlias2Id.pop(alias, None)
     alias = createId()
     childAliases[childId] = alias
     childAlias2Id[alias] = childId
+    #TODO: this is a good place to reset the child, actually
+    retStr = childInstRPCs[childId].requestReboot(childId)
+    print retStr
     print "Ended watchdog for child " + str(childId) + "."
 
 def execute_command(cmd):
@@ -167,12 +171,18 @@ for k, p in zip(childNums, childPackages):
     childThreads.append(nThread)
     nThread.setDaemon(True)
     nThread.start()
-    print 'Connecting to that instance\'s RPC'
+    print 'Connecting to that instance\'s RPC scripts'
+    #TODO: for now we can assume these are localhost, but maybe in the future we will need more sophistication here
     rpcURL = "http://localhost:" + str(5050 + k)
     rpcClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(rpcURL))
     childRPC = rpcClient.get_proxy()
     childRPCNodes[newId] = rpcClient
     childRPCs[newId] = childRPC
+    instURL = "http://localhost:" + str(5150 + k)
+    instClient = RPCClient(JSONRPCProtocol(), HttpPostClientTransport(instURL))
+    instRPC = instClient.get_proxy()
+    childInstRPCNodes[newId] = instClient
+    childInstRPCs[newId] = instRPC
 
 def exit_gracefully(sig, frame):
     for s in subprocesses:

@@ -123,7 +123,19 @@ def CRAMTickCallback(cramTick):
     if (0 != cramTick["error"]):
         CRAMWatchdogErrTick = True
     if (0 != cramTick["done"]):
-        CRAMWatchdogDoneTick = True    
+        CRAMWatchdogDoneTick = True
+
+@dispatcher.public
+def requestReboot(childId):
+    global ownId, nState
+    if ownId == childId:
+        if (nState != statecodes.SC_ERROR) and (nState != statecodes.SC_EXIT):
+            nState = statecodes.SC_BOOTING
+            return "Child " + str(ownId) + " accepts the reboot request."
+        else:
+            return "Child " + str(ownId) + " refuses reboot request: child is already entering state " + statecodes.stateName(nState) + "."
+    else:
+        return "Who are you, stranger?"
 
 def notifyParentOfState(state):
     global parentRPC, ownId
