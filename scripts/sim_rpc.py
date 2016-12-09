@@ -66,10 +66,10 @@ def get_ip_address():
     return s.getsockname()[0]
 ROSBridgeAddress = "ws://" + str(get_ip_address()) + ":" + str(9090 + portOffsNum)
 
-def notifyParentOfState(state):
+def notifyParentOfState(state, message):
     global parentRPC, ownId
     if (None != parentRPC):
-        parentRPC.notify_state({"childId": ownId, "state": state})
+        parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
 
 def sendMongoLogsToParent():
     #TODO: insert some notification to the parent here that mongo logs are available
@@ -87,7 +87,7 @@ def onDone():
     stopMongo()
     simRunning = False
     sendMongoLogsToParent()
-    notifyParentOfState(statecodes.SC_IDLE)
+    notifyParentOfState(statecodes.SC_IDLE, "finished simulation.")
 
 @dispatcher.public
 def prac2cram_client(tasks_RPC):
@@ -137,7 +137,7 @@ def prac2cram_client(tasks_RPC):
             mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(ownId), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
             message = "Started simulation."
             #This should not be needed: the parent can deduce the BUSY state based on the return
-            #notifyParentOfState(statecodes.SC_BUSY)
+            #notifyParentOfState(statecodes.SC_BUSY, "started simulation.")
         else:
             state = statecodes.SC_IDLE
             message = "Did not start simulation. See messages for reasons."
