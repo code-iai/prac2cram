@@ -46,6 +46,12 @@ rpc_server = RPCServerGreenlets(
 childNums = (1,)
 childPackages = ('pizza_demo',)
 packageActions = {'pizza_demo': ['Cutting']}
+packageURDFs = {'pizza_demo': [['robot_description_nocol', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                               ['kitchen_description', 'iai_kitchen', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                               ['pizza_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                               ['cutter_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                               ['bread_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                               ['knife_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/']]}
 
 subprocesses = []
 childThreads = []
@@ -189,7 +195,7 @@ def notify_state(chSt):
 
 @dispatcher.public
 def prac2cram_client(command):
-    global childClients, childAliases, childClientConnection, childRPCs, clientChildren
+    global childClients, childAliases, childClientConnection, childRPCs, clientChildren, child2PackageMap, packageURDFs
     childAlias = None
     childId = None
     tasksRPC = None
@@ -254,6 +260,8 @@ def prac2cram_client(command):
     result["childId"] = childAlias
     result["retcode"] = statecodes.retcodeName(result["retcode"])
     result["state"] = statecodes.stateName(result["state"])
+    childWorld = child2PackageMap[childId]
+    result["urdfPars"] = packageURDFs[childWorld]
     if ("status" in result) and (0 == result["status"]):
         childStates[childId] = statecodes.SC_BUSY
         print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
