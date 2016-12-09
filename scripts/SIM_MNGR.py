@@ -196,9 +196,10 @@ def notify_state(chSt):
     global childStates, childClients
     childId = chSt["childId"]
     state = chSt["state"]
+    message = chSt["message"]
     if childId in childStates:
         childStates[childId] = state
-        print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(state)
+        print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(state) + " with message: " + message
         #TODO: Notify client if one exists-- REMEMBER TO USE THE CHILDALIAS FOR THAT
     else:
         print "Received notification from unknown childId " + str(childId)

@@ -67,6 +67,7 @@ cramProc = None
 
 cState = statecodes.SC_BOOTING
 nState = statecodes.SC_BOOTING
+lastErrMessage = ""
 
 CRAMWatchdogTicked = False
 CRAMWatchdogErrTick = False
@@ -144,10 +145,10 @@ def requestReboot(childId):
     else:
         return "Who are you, stranger?"
 
-def notifyParentOfState(state):
+def notifyParentOfState(state, message):
     global parentRPC, ownId
     if (None != parentRPC):
-        parentRPC.notify_state({"childId": ownId, "state": state})
+        parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
 
 def MonitorLifetime():
     global cState, nState, SIMLifeTime
@@ -178,13 +179,13 @@ def onIdle():
     #Update state machine
     cState = statecodes.SC_IDLE
     #Tell parent (if any) that this instance is now ready to get commands
-    notifyParentOfState(cState)
+    notifyParentOfState(cState, "everything seems normal.")
     
 def onError():
-    global cState, nState
+    global cState, nState, lastErrMessage
     cState = statecodes.SC_ERROR
     #Tell parent (if any) that this instance is currently unavailable
-    notifyParentOfState(cState)
+    notifyParentOfState(cState, lastErrMessage)
     #Need to restart everything
     print "ON ERROR TRIGGERED, WILL RESTART CHILDREN"
     #On next watchdog loop, will (re)boot child processes
@@ -196,7 +197,7 @@ def onBoot():
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
     shutdownChildren()
-    notifyParentOfState(cState)
+    notifyParentOfState(cState, "reset child processes, attempt reboot")
     #Run roscore
     print "Running roscore ..."
     roscoreProc = subprocess.Popen('roscore -p ' + str(rosPort), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
@@ -247,11 +248,12 @@ def watchdogLoop():
             time.sleep(8)
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
                 if(False == CRAMWatchdogTicked):
-                    print "CRAM DIDN'T SEND TICKS IN TIME."
+                    lastErrMessage = "CRAM DIDN'T SEND TICKS IN TIME."
                 elif(True == CRAMWatchdogErrTick):
-                    print "RECEIVED ERRTICK, WILL RESTART."
+                    lastErrMessage = "RECEIVED ERRTICK, WILL RESTART."
                 #Next watchdog loop will trigger error handling
                 nState = statecodes.SC_ERROR
+                print lastErrMessage
             #BUSY state for now handled by sim_rpc
             #elif (True == CRAMWatchdogDoneTick) and (statecodes.SC_BUSY == cState):
             #    #Next watchdog loop will transition to idle
