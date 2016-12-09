@@ -153,6 +153,8 @@ def MonitorLifetime():
     global cState, nState, SIMLifeTime
     while True:
         time.sleep(1)
+        if (nState == statecodes.SC_ERROR) or (nState == statecodes.SC_BOOTING):
+            return
         if cState == statecodes.SC_IDLE:
             SIMLifeTime = SIMLifeTime - 1
         else:
@@ -192,8 +194,8 @@ def onBoot():
     global cState, nState, SIMLifeTime
     global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
-    shutdownChildren()
     cState = statecodes.SC_BOOTING
+    shutdownChildren()
     notifyParentOfState(cState)
     #Run roscore
     print "Running roscore ..."
