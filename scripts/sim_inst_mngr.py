@@ -238,6 +238,7 @@ def onBoot():
 def watchdogLoop():
     global cState, nState, CRAMWatchdogTicked, CRAMWatchdogDoneTick, CRAMWatchdogErrTick, lastErrMessage
     while statecodes.SC_EXIT != nState:
+        time.sleep(8)
         if (statecodes.SC_BOOTING == nState):
             onBoot()
         elif (statecodes.SC_IDLE == nState) and (statecodes.SC_IDLE != cState):
@@ -245,7 +246,6 @@ def watchdogLoop():
         elif (statecodes.SC_ERROR == nState):
             onError()
         elif (statecodes.SC_IDLE == cState) or (statecodes.SC_BUSY == cState):
-            time.sleep(8)
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
                 if(False == CRAMWatchdogTicked):
                     lastErrMessage = "CRAM DIDN'T SEND TICKS IN TIME."
