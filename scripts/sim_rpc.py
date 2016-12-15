@@ -41,9 +41,32 @@ ownId = portOffsNum
 if (5 < len(sys.argv)):
     ownId = sys.argv[5]
 
-mongoProc = None
-
 simRunning = False
+
+SIMLifeTime = 10*60
+nLTThread = None
+def MonitorLifetime():
+    global simRunning, SIMLifeTime
+    while True:
+        time.sleep(1)
+        if False == simRunning:
+            SIMLifeTime = SIMLifeTime - 1
+        else:
+            SIMLifeTime = 10*60
+        if 0 >= SIMLifeTime:
+            break
+    SIMLifeTime = 10*60
+    print "Spent 1h in IDLE state. Will now reboot."
+    if None != parenRPC:
+        instRPC.requestReboot(ownId)
+
+nLTThread = Thread(target = MonitorLifetime)
+nLTThread.setDaemon(True)
+nLTThread.start()
+
+
+
+mongoProc = None
 
 doneTicks = 0
 

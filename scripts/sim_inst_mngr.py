@@ -72,8 +72,6 @@ lastErrMessage = ""
 CRAMWatchdogTicked = False
 CRAMWatchdogErrTick = False
 CRAMWatchdogDoneTick = False
-SIMLifeTime = 10*60
-nLTThread = None
 
 # start wsgi server as a background-greenlet
 dispatcher = RPCDispatcher()
@@ -151,26 +149,6 @@ def notifyParentOfState(state, message):
     if (None != parentRPC):
         parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
 
-def MonitorLifetime():
-    global cState, nState, SIMLifeTime
-    while True:
-        time.sleep(1)
-        print "Lifetime tick; lifetime left " + str(SIMLifeTime) + "; state " + statecodes.stateName(cState) + " (entering " + statecodes.stateName(nState) + ")"
-        if (nState == statecodes.SC_ERROR) or (nState == statecodes.SC_BOOTING):
-            return
-        if cState == statecodes.SC_IDLE:
-            SIMLifeTime = SIMLifeTime - 1
-        else:
-            SIMLifeTime = 10*60
-        if 0 >= SIMLifeTime:
-            break
-    SIMLifeTime = 10*60
-    #This is to prevent any new commands from being taken
-    cState = statcodes.SC_BUSY
-    #And this is to reboot as soon as the watchdog loop ticks by
-    nState = statecodes.SC_BOOTING
-    print "Spent 1h in IDLE state. Will now reboot."
-
 def onIdle():
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
     global cState
@@ -194,7 +172,7 @@ def onError():
     nState = statecodes.SC_BOOTING
 
 def onBoot():
-    global cState, nState, SIMLifeTime, nLTThread
+    global cState, nState
     global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
@@ -232,10 +210,6 @@ def onBoot():
     print "              ... should be started."
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
-    SIMLifeTime = 10*60
-    nLTThread = Thread(target = MonitorLifetime)
-    nLTThread.setDaemon(True)
-    nLTThread.start()
 
 def watchdogLoop():
     global cState, nState, CRAMWatchdogTicked, CRAMWatchdogDoneTick, CRAMWatchdogErrTick, lastErrMessage
