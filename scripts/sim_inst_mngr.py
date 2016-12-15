@@ -132,22 +132,23 @@ def CRAMTickCallback(cramTick):
     if (0 != cramTick["done"]):
         CRAMWatchdogDoneTick = True
 
+def notifyParentOfState(state, message):
+    global parentRPC, ownId
+    if (None != parentRPC):
+        parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
+
 @dispatcher.public
 def requestReboot(childId):
     global ownId, nState
     if ownId == childId:
         if (nState != statecodes.SC_ERROR) and (nState != statecodes.SC_EXIT):
             nState = statecodes.SC_BOOTING
+            notifyParentOfState(nState, "reboot requested and accepted.")
             return "Child " + str(ownId) + " accepts the reboot request."
         else:
             return "Child " + str(ownId) + " refuses reboot request: child is already entering state " + statecodes.stateName(nState) + "."
     else:
         return "Who are you, stranger?"
-
-def notifyParentOfState(state, message):
-    global parentRPC, ownId
-    if (None != parentRPC):
-        parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
 
 def onIdle():
     global CRAMWatchdogTicked, CRAMWatchdogErrTick, CRAMWatchdogDoneTick
@@ -220,6 +221,8 @@ def watchdogLoop():
         elif (statecodes.SC_IDLE == nState) and (statecodes.SC_IDLE != cState):
             onIdle()
         elif (statecodes.SC_ERROR == nState):
+            # This branch should actually be obsolete: as soon as nState is ERROR, onError should be triggered
+            # (bypassing the watchdog's 8s sleep)
             onError()
         elif (statecodes.SC_IDLE == cState) or (statecodes.SC_BUSY == cState):
             if (False == CRAMWatchdogTicked) or (True == CRAMWatchdogErrTick):
@@ -230,6 +233,7 @@ def watchdogLoop():
                 #Next watchdog loop will trigger error handling
                 nState = statecodes.SC_ERROR
                 print lastErrMessage
+                onError()
             #BUSY state for now handled by sim_rpc
             #elif (True == CRAMWatchdogDoneTick) and (statecodes.SC_BUSY == cState):
             #    #Next watchdog loop will transition to idle
