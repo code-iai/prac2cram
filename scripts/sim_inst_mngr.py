@@ -72,7 +72,8 @@ lastErrMessage = ""
 CRAMWatchdogTicked = False
 CRAMWatchdogErrTick = False
 CRAMWatchdogDoneTick = False
-SIMLifeTime = 60*60
+SIMLifeTime = 10*60
+nLTThread = None
 
 # start wsgi server as a background-greenlet
 dispatcher = RPCDispatcher()
@@ -160,10 +161,10 @@ def MonitorLifetime():
         if cState == statecodes.SC_IDLE:
             SIMLifeTime = SIMLifeTime - 1
         else:
-            SIMLifeTime = 60*60
+            SIMLifeTime = 10*60
         if 0 >= SIMLifeTime:
             break
-    SIMLifeTime = 60*60
+    SIMLifeTime = 10*60
     #This is to prevent any new commands from being taken
     cState = statcodes.SC_BUSY
     #And this is to reboot as soon as the watchdog loop ticks by
@@ -193,7 +194,7 @@ def onError():
     nState = statecodes.SC_BOOTING
 
 def onBoot():
-    global cState, nState, SIMLifeTime
+    global cState, nState, SIMLifeTime, nLTThread
     global roscoreProc, rosPort, setParProc, rosBridgePort, rpcProc, portOffsNum, rpcPort, parentURL, instPort, ownId
     global simClient, simURL, simRPC, gazeboProc, packageName, cramProc
     cState = statecodes.SC_BOOTING
@@ -231,7 +232,7 @@ def onBoot():
     print "              ... should be started."
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
-    SIMLifeTime = 60*60
+    SIMLifeTime = 10*60
     nLTThread = Thread(target = MonitorLifetime)
     nLTThread.setDaemon(True)
     nLTThread.start()
