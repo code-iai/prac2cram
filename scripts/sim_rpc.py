@@ -58,8 +58,7 @@ def MonitorLifetime():
             break
     SIMLifeTime = 10*60
     print "Spent 1h in IDLE state. Will now reboot."
-    if None != parenRPC:
-        instRPC.requestReboot(ownId)
+    instRPC.requestReboot(ownId)
 
 nLTThread = Thread(target = MonitorLifetime)
 nLTThread.setDaemon(True)
