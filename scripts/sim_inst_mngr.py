@@ -154,6 +154,7 @@ def MonitorLifetime():
     global cState, nState, SIMLifeTime
     while True:
         time.sleep(1)
+        print "Lifetime tick; lifetime left " + str(SIMLifeTime) + "; state " + statecodes.stateName(cState) + " (entering " + statecodes.stateName(nState) + ")"
         if (nState == statecodes.SC_ERROR) or (nState == statecodes.SC_BOOTING):
             return
         if cState == statecodes.SC_IDLE:
