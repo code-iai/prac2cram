@@ -44,7 +44,7 @@ if (5 < len(sys.argv)):
 
 simRunning = False
 
-SIMLifeTime = 60*60
+SIMLifeTime = 4*60*60
 nLTThread = None
 def MonitorLifetime():
     global simRunning, SIMLifeTime
@@ -53,11 +53,11 @@ def MonitorLifetime():
         if False == simRunning:
             SIMLifeTime = SIMLifeTime - 1
         else:
-            SIMLifeTime = 60*60
+            SIMLifeTime = 4*60*60
         if 0 >= SIMLifeTime:
             break
-    SIMLifeTime = 60*60
-    print "Spent 1h in IDLE state. Will now reboot."
+    SIMLifeTime = 4*60*60
+    print "Spent 4h in IDLE state. Will now reboot."
     simRunning = True
     instRPC.requestReboot(ownId)
 
