@@ -72,6 +72,20 @@ childRPCs = {}
 childInstRPCNodes = {}
 childInstRPCs = {}
 
+
+def periodicPurge():
+    purgeTime = 24*60*60
+    while True:
+        time.sleep(1)
+        purgeTime = purgeTime - 1
+        if 0 >= purgeTime:
+            purgeTime = 24*60*60
+            subprocess.Popen("rosclean purge -y", stdout=None, stderr=None, shell=True, preexec_fn=os.setsid)
+prgThread = Thread(target = periodicPurge)
+prgThread.setDaemon(True)
+prgThread.start()
+
+
 def createId(size=8, chars=string.ascii_uppercase+string.ascii_lowercase+string.digits):
     return ''.join(random.SystemRandom().choice(chars) for _ in range(size))
 
