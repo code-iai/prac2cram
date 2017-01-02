@@ -84,6 +84,9 @@ rpc_server = RPCServerGreenlets(
     dispatcher
 )
 
+def getDBName(anId):
+    return "roslog_" + str(anId)
+
 def get_ip_address():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -96,7 +99,21 @@ def notifyParentOfState(state, message):
         parentRPC.notify_state({"childId": ownId, "state": state, "message": message})
 
 def sendMongoLogsToParent():
-    #TODO: insert some notification to the parent here that mongo logs are available
+    global ownId
+    dbName = getDBName(anId)
+    cmdMkDir = "mkdir ./" + dbName
+    subprocess.call(cmdMkDir, stdout=None, stderr=None, shell=True)
+    cmdExpTF = "mongoexport --db " + dbName + " --collection tf --out " + "./" + dbName + "/tf.json"
+    subprocess.call(cmdExpTF, stdout=None, stderr=None, shell=True)
+    cmdExpDesig = "mongoexport --db " + dbName + " --collection logged_designators --out " + "./" + dbName + "/logged_designators.json"
+    subprocess.call(cmdExpDesig, stdout=None, stderr=None, shell=True)
+    cmdDropDB = "mongo " + dbName + ' --eval "db.dropDatabase()"'
+    subprocess.call(cmdDropDB, stdout=None, stderr=None, shell=True)
+    #TODO: add semrec exporting here
+    #TODO: add send-to-OpenEASE code here
+    cmdClr = "rm -r ./" + dbName
+    subprocess.call(cmdClr, stdout=None, stderr=None, shell=True)
+    #TODO: insert some notification to the parent here that mongo logs are available, and where to find them
     return None
 
 def stopMongo():
@@ -158,7 +175,7 @@ def prac2cram_client(tasks_RPC):
         #Rosrun mongodb logger (but do this only when needed, ie. right before a sim begins)
         if (0 == status):
             simRunning = True
-            mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name roslog_' + str(ownId), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
+            mongoProc = subprocess.Popen('rosrun mongodb_log mongodb_log /tf /logged_designators /logged_metadata --mongodb-name ' + getDBName(ownId), stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
             message = "Started simulation."
             #This should not be needed: the parent can deduce the BUSY state based on the return
             #notifyParentOfState(statecodes.SC_BUSY, "started simulation.")
