@@ -214,13 +214,16 @@ def prac2cram_client(command):
     if "clientId" in command:
         clientId = command["clientId"]
     else:
+        print "No clientId found, rejecting request."
         return {"status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
     if "tasks" in command:
         tasksRPC = command["tasks"]
     else:
+        print "No tasks found, rejecting request."
         return {"status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
     firstAction = findFirstAction(tasksRPC)
     if None == firstAction:
+        print "No first action found, rejecting request."
         return {"status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
     if ("childId" in command) and ("" != command["childId"]):
         #If the command names a child (using its alias) to use, check that this client has a connection to that child
@@ -231,8 +234,10 @@ def prac2cram_client(command):
             if childId in childClients:
                 expectedClient = childClients[childId]
             if expectedClient != clientId:
+                print "Claimed connection to a child connected to another client, rejecting request."
                 return {"status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
+            print "Claimed connection to unrecognized child, rejecting request."
             return {"status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
     elif (clientId in clientChildren):
         #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
@@ -244,12 +249,14 @@ def prac2cram_client(command):
         #Find a free child in a world that implements the first action
         worldsToTry = findWorldsByAction(firstAction)
         if None == worldsToTry:
+            print "Unknown first action, rejecting request."
             return {"status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
         for w in worldsToTry:
             childId = findFreeChildInWorld(w)
             if None != childId:
                 break
         if None == childId:
+            print "No idle child available for the first action, rejecting request."
             return {"status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
     childAlias = childAliases[childId]
     childClientConnection[childId] = 5*60
@@ -276,6 +283,8 @@ def prac2cram_client(command):
     if ("status" in result) and (0 == result["status"]):
         childStates[childId] = statecodes.SC_BUSY
         print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
+    print "Sending response: "
+    print result
     return {"status": "Sent request to simulation, see result.", "result": result}
 
 rpc_server.serve_forever()
