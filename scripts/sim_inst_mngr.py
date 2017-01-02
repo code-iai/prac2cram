@@ -106,7 +106,7 @@ def shutdownChildren():
         roscoreProc = None
     #Gazebo takes a while to actually exit
     if haveToWait:
-        time.sleep(15)
+        time.sleep(20)
     else:
         time.sleep(5)
 
