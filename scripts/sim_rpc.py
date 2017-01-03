@@ -100,7 +100,7 @@ def notifyParentOfState(state, message):
 
 def sendMongoLogsToParent():
     global ownId
-    dbName = getDBName(anId)
+    dbName = getDBName(ownId)
     cmdMkDir = "mkdir ./" + dbName
     subprocess.call(cmdMkDir, stdout=None, stderr=None, shell=True)
     cmdExpTF = "mongoexport --db " + dbName + " --collection tf --out " + "./" + dbName + "/tf.json"
