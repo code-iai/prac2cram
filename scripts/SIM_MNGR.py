@@ -125,11 +125,14 @@ def findFreeChildInWorld(w):
 
 def findIdleClientChild(clientId, firstAction):
     global childStates, clientChildren, packageActions, child2PackageMap
+    print "findIdleClientChild(" + clientId + ", " + firstAction + ")"
     childId = None
     for c in clientChildren[clientId]:
+        print "    " + str(c) + " (" + str(childStates[c]) + "): " + str(child2PackageMap[c]) + ":: " + str(packageActions[child2PackageMap[c]])
         if (statecodes.SC_IDLE == childStates[c]) and (firstAction in packageActions[child2PackageMap[c]]):
             childId = c
             break
+    print "Found child " + str(childId)
     return childId
 
 def childWatchdog(childId):
@@ -221,6 +224,8 @@ def notify_state(chSt):
 @dispatcher.public
 def prac2cram_client(command):
     global childClients, childAliases, childClientConnection, childRPCs, clientChildren, child2PackageMap, packageURDFs
+    print "Received command:"
+    print str(command)
     childAlias = None
     childId = None
     tasksRPC = None
@@ -239,7 +244,9 @@ def prac2cram_client(command):
     if None == firstAction:
         print "No first action found, rejecting request."
         return {"status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
+    print "Identified clientId " + str(clientId) + " firstAction " + str(firstAction)
     if ("childId" in command) and ("" != command["childId"]):
+        print "Have a childId in the command (" + str(childId) + "), will now try to connect to it."
         #If the command names a child (using its alias) to use, check that this client has a connection to that child
         childAlias = command["childId"]
         if childAlias in childAlias2Id:
@@ -256,11 +263,13 @@ def prac2cram_client(command):
     elif (clientId in clientChildren):
         #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
         #and are in a world that implements the required first action.
+        print "Client has some children connected to it, checking if one is available."
         childId = findIdleClientChild(clientId, firstAction)
     else:
         childId = None
     if (None == childId):
         #Find a free child in a world that implements the first action
+        print "Trying to see if one of the idle children supports the first action in the command."
         worldsToTry = findWorldsByAction(firstAction)
         if None == worldsToTry:
             print "Unknown first action, rejecting request."
