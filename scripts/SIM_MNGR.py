@@ -222,7 +222,7 @@ def notify_state(chSt):
         print "Received notification from unknown childId " + str(childId)
 
 @dispatcher.public
-def prac2cram_client(command):
+def prac2cram_client(command, execute):
     global childClients, childAliases, childClientConnection, childRPCs, clientChildren, child2PackageMap, packageURDFs
     print "Received command:"
     print str(command)
@@ -234,16 +234,16 @@ def prac2cram_client(command):
         clientId = command["clientId"]
     else:
         print "No clientId found, rejecting request."
-        return {"status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
+        return {"can_execute": False, "status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
     if "tasks" in command:
         tasksRPC = command["tasks"]
     else:
         print "No tasks found, rejecting request."
-        return {"status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
+        return {"can_execute": False, "status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
     firstAction = findFirstAction(tasksRPC)
     if None == firstAction:
         print "No first action found, rejecting request."
-        return {"status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
+        return {"can_execute": False, "status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
     print "Identified clientId " + str(clientId) + " firstAction " + str(firstAction)
     if ("childId" in command) and ("" != command["childId"]):
         print "Have a childId in the command (" + str(childId) + "), will now try to connect to it."
@@ -256,10 +256,10 @@ def prac2cram_client(command):
                 expectedClient = childClients[childId]
             if expectedClient != clientId:
                 print "Claimed connection to a child connected to another client, rejecting request."
-                return {"status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
+                return {"can_execute": False, "status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
             print "Claimed connection to unrecognized child, rejecting request."
-            return {"status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
+            return {"can_execute": False, "status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
     elif (clientId in clientChildren):
         #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
         #and are in a world that implements the required first action.
@@ -273,42 +273,47 @@ def prac2cram_client(command):
         worldsToTry = findWorldsByAction(firstAction)
         if None == worldsToTry:
             print "Unknown first action, rejecting request."
-            return {"status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
+            return {"can_execute": False, "status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
         for w in worldsToTry:
             childId = findFreeChildInWorld(w)
             if None != childId:
                 break
         if None == childId:
             print "No idle child available for the first action, rejecting request."
-            return {"status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
+            return {"can_execute": False, "status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
     childAlias = childAliases[childId]
-    childClientConnection[childId] = 5*60
-    if clientId not in clientChildren:
-        clientChildren[clientId] = []
-        print "Client " + str(clientId) + " has been added to the record."
-    if childId not in clientChildren[clientId]:
-        clientChildren[clientId].append(childId)
-        print "Registering child " + str(childId) + " as connected to client " + str(clientId) + "."
-    if childId not in childClients:
-        print "Started a watchdog for child " + str(childId) + "."
-        childClients[childId] = clientId
-        nThread = Thread(target=childWatchdog, args=(childId,))
-        nThread.setDaemon(True)
-        nThread.start()
-    result = childRPCs[childId].prac2cram_client(tasksRPC)
+    result = {}
+    commandOk = True
+    if execute:
+        childClientConnection[childId] = 5*60
+        if clientId not in clientChildren:
+            clientChildren[clientId] = []
+            print "Client " + str(clientId) + " has been added to the record."
+        if childId not in clientChildren[clientId]:
+            clientChildren[clientId].append(childId)
+            print "Registering child " + str(childId) + " as connected to client " + str(clientId) + "."
+        if childId not in childClients:
+            print "Started a watchdog for child " + str(childId) + "."
+            childClients[childId] = clientId
+            nThread = Thread(target=childWatchdog, args=(childId,))
+            nThread.setDaemon(True)
+            nThread.start()
+        result = childRPCs[childId].prac2cram_client(tasksRPC)
+        result["retcode"] = statecodes.retcodeName(result["retcode"])
+        result["state"] = statecodes.stateName(result["state"])
+        if ("status" in result) and (0 == result["status"]):
+            childStates[childId] = statecodes.SC_BUSY
+            print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
+        else:
+            commandOk = False
     #Note: we let the child's own notification services to take care of notifying IDLE/BUSY on state changes.
     # Web client must never learn the child's Id, or else they could spoof notifications of state.
     result["childId"] = childAlias
-    result["retcode"] = statecodes.retcodeName(result["retcode"])
-    result["state"] = statecodes.stateName(result["state"])
     childWorld = child2PackageMap[childId]
     result["urdfPars"] = packageURDFs[childWorld]
-    if ("status" in result) and (0 == result["status"]):
-        childStates[childId] = statecodes.SC_BUSY
-        print str(datetime.datetime.now().time()) + " ChildId " + str(childId) + " passed to state " + statecodes.stateName(statecodes.SC_BUSY)
     print "Sending response: "
     print result
-    return {"status": "Sent request to simulation, see result.", "result": result}
+    return {'can_execute': commandOk, "status": "Sent request to simulation, see result.", "result": result}
 
 rpc_server.serve_forever()
 
