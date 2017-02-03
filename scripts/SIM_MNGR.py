@@ -222,10 +222,13 @@ def notify_state(chSt):
         print "Received notification from unknown childId " + str(childId)
 
 @dispatcher.public
-def prac2cram_client(command, execute):
+def prac2cram_client(command):
     global childClients, childAliases, childClientConnection, childRPCs, clientChildren, child2PackageMap, packageURDFs
     print "Received command:"
     print str(command)
+    execute = True
+    if "execute" in command:
+        execute = command["execute"]
     childAlias = None
     childId = None
     tasksRPC = None
@@ -234,16 +237,16 @@ def prac2cram_client(command, execute):
         clientId = command["clientId"]
     else:
         print "No clientId found, rejecting request."
-        return {"can_execute": False, "status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
+        return {"executable": False, "status": "ERROR: client did not supply an id, and its request is ignored.", "result": {}}
     if "tasks" in command:
         tasksRPC = command["tasks"]
     else:
         print "No tasks found, rejecting request."
-        return {"can_execute": False, "status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
+        return {"executable": False, "status": "ERROR: command contained no action cores, and is ignored.", "result": {}}
     firstAction = findFirstAction(tasksRPC)
     if None == firstAction:
         print "No first action found, rejecting request."
-        return {"can_execute": False, "status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
+        return {"executable": False, "status": "ERROR: couldn't find first action core; request may be malformed and was ignored.", "result": {}}
     print "Identified clientId " + str(clientId) + " firstAction " + str(firstAction)
     if ("childId" in command) and ("" != command["childId"]):
         print "Have a childId in the command (" + str(childId) + "), will now try to connect to it."
@@ -256,10 +259,10 @@ def prac2cram_client(command, execute):
                 expectedClient = childClients[childId]
             if expectedClient != clientId:
                 print "Claimed connection to a child connected to another client, rejecting request."
-                return {"can_execute": False, "status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
+                return {"executable": False, "status": "ERROR: client claimed connection to a child already claimed by another client; request ignored.", "result": {}}
         else:
             print "Claimed connection to unrecognized child, rejecting request."
-            return {"can_execute": False, "status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
+            return {"executable": False, "status": "ERROR: client claimed connection to an unrecognized child id; request ignored.", "result": {}}
     elif (clientId in clientChildren):
         #If the command does not name a child, nevertheless check if any children are connected to this client, are not busy,
         #and are in a world that implements the required first action.
@@ -273,14 +276,14 @@ def prac2cram_client(command, execute):
         worldsToTry = findWorldsByAction(firstAction)
         if None == worldsToTry:
             print "Unknown first action, rejecting request."
-            return {"can_execute": False, "status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
+            return {"executable": False, "status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
         for w in worldsToTry:
             childId = findFreeChildInWorld(w)
             if None != childId:
                 break
         if None == childId:
             print "No idle child available for the first action, rejecting request."
-            return {"can_execute": False, "status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
+            return {"executable": False, "status": "ERROR: no child available to do the first action right now (they're all busy); request ignored. Try again in a few minutes.", "result": {}}
     childAlias = childAliases[childId]
     result = {}
     commandOk = True
@@ -313,7 +316,7 @@ def prac2cram_client(command, execute):
     result["urdfPars"] = packageURDFs[childWorld]
     print "Sending response: "
     print result
-    return {'can_execute': commandOk, "status": "Sent request to simulation, see result.", "result": result}
+    return {'executable': commandOk, "status": "Sent request to simulation, see result.", "result": result}
 
 rpc_server.serve_forever()
 
