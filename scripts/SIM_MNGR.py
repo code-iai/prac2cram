@@ -42,16 +42,23 @@ rpc_server = RPCServerGreenlets(
 
 #This should be read out of some config info
 #childNums = (0, 1)
-#childPackages = ('pizza_demo', 'pizza_demo')
-childNums = (1,)
-childPackages = ('pizza_demo',)
-packageActions = {'pizza_demo': ['Cutting']}
+#childPackages = ('pizza_demo', 'prac_cs_demo')
+childNums = (1, 2)
+childPackages = ('pizza_demo', 'prac_cs_demo')
+packageActions = {'pizza_demo': ['Cutting'], 'prac_cs_demo': ['Pouring', 'Pipetting']}
 packageURDFs = {'pizza_demo': [['robot_description_nocol', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['kitchen_description', 'iai_kitchen', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['pizza_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['cutter_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['bread_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
-                               ['knife_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/']]}
+                               ['knife_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/']],
+                'prac_cs_demo': [['robot_description_nocol', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['chemlab_table_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['bottle_250ml_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['bottle_250ml_0_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['bottle_250ml_1_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['flask_400ml_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
+                                 ['pipette_accumax_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/']]}
 
 subprocesses = []
 childThreads = []
