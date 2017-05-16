@@ -45,7 +45,7 @@ rpc_server = RPCServerGreenlets(
 #childPackages = ('pizza_demo', 'prac_cs_demo')
 childNums = (1, 2)
 childPackages = ('pizza_demo', 'prac_cs_demo')
-packageActions = {'pizza_demo': ['Cutting'], 'prac_cs_demo': ['Pouring', 'Pipetting']}
+packageActions = {'pizza_demo': ['Cutting'], 'prac_cs_demo': ['Pouring', 'Pipetting', 'UsingMeasuringCup']}
 packageURDFs = {'pizza_demo': [['robot_description_nocol', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['kitchen_description', 'iai_kitchen', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['pizza_description', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
@@ -125,6 +125,8 @@ def findFreeChildInWorld(w):
     global childPackages, childIds, childStates, childClients
     childId = None
     for c, p in zip(childIds, childPackages):
+        if (p==w):
+            print "Testing child " + str(c) + "which has state " + childStates[c] + "(needed is " + str(statecodes.SC_IDLE) + "); is this child in childClients: " + str(c in childClients)
         if (p == w) and (statecodes.SC_IDLE == childStates[c]) and (c not in childClients):
             childId = c
             break
@@ -285,6 +287,8 @@ def prac2cram_client(command):
             print "Unknown first action, rejecting request."
             return {"executable": False, "status": "ERROR: the first requested action core doesn't seem to fit any of the child worlds; request ignored.", "result": {}}
         for w in worldsToTry:
+            print "Looking for a free child in world"
+            print w
             childId = findFreeChildInWorld(w)
             if None != childId:
                 break
