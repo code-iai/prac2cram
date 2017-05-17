@@ -32,6 +32,9 @@
 (defparameter plan-running (cpl:make-fluent :value nil))
 (defparameter plan-error (cpl:make-fluent :value nil))
 
+(defparameter should-cancel (cpl:make-fluent :value nil))
+(defparameter has-cancelled (cpl:make-fluent :value nil))
+
 ;;; Make a test plan for debugging purposes.
 ;;; Note that for each plan we want prac2cram to be able to call we need:
 ;;;   the plan itself;
@@ -95,13 +98,31 @@
     (format T "STATUSES ~a STARTED ~a ~%" statuses started)
     (if started
       (sb-thread:make-thread (lambda ()
-                               (mapcar (lambda (plan-fn plan-arg-fn args)
-                                         ;; in the future, compute arguments for a plan just before running it.
-                                         (declare (ignore plan-arg-fn))
-                                         (apply plan-fn args))
-                                       plan-fns plan-arg-fns args-list)
-                               (setf (cpl:value plan-running) nil))))
+                               (cpl-impl:top-level
+                                 (cpl:pursue
+                                   (mapcar (lambda (plan-fn plan-arg-fn args)
+                                             ;; TODO: in the future, compute arguments for a plan just before running it.
+                                             (declare (ignore plan-arg-fn))
+                                             (apply plan-fn args))
+                                           plan-fns plan-arg-fns args-list)
+                                   (loop while (not (cpl:value should-cancel)) do
+                                     (cpl-impl:sleep 1)))
+                                 (when (cpl:value should-cancel)
+                                   (when *cancel-function*
+                                     (funcall *cancel-function*))
+                                   (setf (cpl:value has-cancelled) T)))
+                                 (setf (cpl:value plan-running) nil))))
     (values started statuses messages plan-strings)))
+
+(roslisp:def-service-callback CancelSim ()
+  (setf (cpl:value should-cancel) T)
+;; TODO: add a cancelling timeout here
+  (loop while (not (cpl:value has-cancelled)) do
+    (cpl:sleep 1))
+  (setf (cpl:value should-cancel) nil)
+  (setf (cpl:value has-cancelled) nil)
+  (roslisp:make-response :status 0
+                         :result "AllOk"))
 
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
@@ -150,10 +171,11 @@
                                              :error error))
       (roslisp:wait-duration 1))))
 
-(defun prac2cram-server (plan-matchings &optional (prac-url "http://localhost:1234"))
+(defun prac2cram-server (plan-matchings cancel-function &optional (prac-url "http://localhost:1234"))
   ;; put the debugging/test plan into the plan-matchings alist to ensure it's there.
   (let* ((plan-matchings (acons "dbg-prac2cram" (list #'test-plan #'get-test-plan-args) plan-matchings)))
     (setf *prac-url* prac-url)
+    (setf *cancel-function* cancel-function)
     (setf (cpl:value plan-running) nil)
     ;; Subscribe to clock to create a tick-thread-- notify the ROS world that this prac2cram server is still running
     (sb-thread:make-thread (lambda () (send-tick)))
@@ -164,7 +186,9 @@
     (setf *plan-matchings* plan-matchings)
        (roslisp:register-service "prac2cram" 
                                  'Prac2Cram)
-       (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query. Known plan matchings ~a~%" *plan-matchings*)))
+       (roslisp:register-service "prac2cram/cancel_sim"
+                                 'CancelSim)
+       (roslisp:ros-info (basics-system) "This is the prac2cram server. I'm ready to start a CRAM query. Known plan matchings ~a~%Known cancel function ~a~%" *plan-matchings* *cancel-function*)))
 
 
 

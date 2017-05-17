@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
 
   FILES
+  CancelSim.srv
   Prac2Cram.srv
   Prac2Cram2.srv
   POSTRequest.srv

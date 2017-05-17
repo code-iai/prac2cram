@@ -218,6 +218,33 @@ signal.signal(signal.SIGINT, exit_gracefully)
 signal.signal(signal.SIGTERM, exit_gracefully)
 
 @dispatcher.public
+def cancel_simulation(command):  
+    global childClients, childRPCs, childAlias2Id
+    childAlias = None
+    childId = None
+    clientId = None
+    if "clientId" in command:
+        clientId = command["clientId"]
+    else:
+        print "No clientId found, rejecting request."
+        return {"executable": False, "status": "ERROR: client did not supply an id, and its request is ignored."}
+    if "childId" in command:
+        childAlias = command["childId"]
+    else:
+        print "No childId found, rejecting request."
+        return {"executable": False, "status": "ERROR: no child id supplied, request ignored."}
+    if childAlias in childAlias2Id:
+        childId = childAlias2Id[childAlias]
+    else:
+        print "Claimed connection to unrecognized child, rejecting request."
+        return {"executable": False, "status": "ERROR: client claimed connection to an unrecognized child id; request ignored."}
+    if (childId not in childClients) or (clientId != childClients[childId])
+        print "Client claimed a connection to a child when that child is either idle or connected to another client; request ignored."
+        return {"executable": False, "status": "ERROR: client claimed a connection to a child when that child is either idle or connected to another client; request ignored."}
+    response = childRPCs[childId].prac2cram_cancel_simulation()
+    return response
+
+@dispatcher.public
 def notify_state(chSt):
     global childStates, childClients
     childId = chSt["childId"]

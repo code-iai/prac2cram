@@ -30,6 +30,7 @@
 (in-package :prac2cram)
 
 (defparameter *plan-matchings* nil)
+(defparameter *cancel-function* nil)
 (defparameter *prac-url* "http://localhost:1234")
 
 
