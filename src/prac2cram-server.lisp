@@ -111,7 +111,7 @@
                                    (when *cancel-function*
                                      (funcall *cancel-function*))
                                    (setf (cpl:value has-cancelled) T)))
-                                 (setf (cpl:value plan-running) nil))))
+                               (setf (cpl:value plan-running) nil))))
     (values started statuses messages plan-strings)))
 
 (roslisp:def-service-callback CancelSim ()
