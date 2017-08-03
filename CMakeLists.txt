@@ -3,6 +3,7 @@ project(prac2cram)
 
 find_package(catkin REQUIRED COMPONENTS
   roslisp
+  roslisp_utilities
   rospy
   std_msgs
   alexandria
@@ -41,7 +42,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES assignment_6_1
-  CATKIN_DEPENDS roslisp rospy alexandria std_msgs message_runtime cram_language yason
+  CATKIN_DEPENDS roslisp roslisp_utilities rospy alexandria std_msgs message_runtime cram_language yason
 #  DEPENDS system_lib
 )
 

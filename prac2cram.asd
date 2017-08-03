@@ -1,5 +1,5 @@
 (defsystem prac2cram
-    :depends-on (roslisp cram-language alexandria yason std_msgs-msg prac2cram-srv prac2cram-msg rosgraph_msgs-msg)
+    :depends-on (roslisp roslisp-utilities cram-language alexandria yason std_msgs-msg prac2cram-srv prac2cram-msg rosgraph_msgs-msg)
     :components
     ((:module "src"
               :components

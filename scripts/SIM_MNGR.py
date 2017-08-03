@@ -238,7 +238,7 @@ def cancel_simulation(command):
     else:
         print "Claimed connection to unrecognized child, rejecting request."
         return {"executable": False, "status": "ERROR: client claimed connection to an unrecognized child id; request ignored."}
-    if (childId not in childClients) or (clientId != childClients[childId])
+    if (childId not in childClients) or (clientId != childClients[childId]):
         print "Client claimed a connection to a child when that child is either idle or connected to another client; request ignored."
         return {"executable": False, "status": "ERROR: client claimed a connection to a child when that child is either idle or connected to another client; request ignored."}
     response = childRPCs[childId].prac2cram_cancel_simulation()
