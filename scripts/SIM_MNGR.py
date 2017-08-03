@@ -126,7 +126,7 @@ def findFreeChildInWorld(w):
     childId = None
     for c, p in zip(childIds, childPackages):
         if (p==w):
-            print "Testing child " + str(c) + "which has state " + childStates[c] + "(needed is " + str(statecodes.SC_IDLE) + "); is this child in childClients: " + str(c in childClients)
+            print "Testing child " + str(c) + "which has state " + str(childStates[c]) + "(needed is " + str(statecodes.SC_IDLE) + "); is this child in childClients: " + str(c in childClients)
         if (p == w) and (statecodes.SC_IDLE == childStates[c]) and (c not in childClients):
             childId = c
             break
@@ -325,7 +325,9 @@ def prac2cram_client(command):
     childAlias = childAliases[childId]
     result = {}
     commandOk = True
+    print "Found a free child in a world."
     if execute:
+        print "Trying to execute ..."
         childClientConnection[childId] = 5*60
         if clientId not in clientChildren:
             clientChildren[clientId] = []
@@ -349,6 +351,8 @@ def prac2cram_client(command):
             commandOk = False
     #Note: we let the child's own notification services to take care of notifying IDLE/BUSY on state changes.
     # Web client must never learn the child's Id, or else they could spoof notifications of state.
+    print "Will send alias " + str(childAlias)
+    print "for child in world " + str(child2PackageMap[childId])
     result["childId"] = childAlias
     childWorld = child2PackageMap[childId]
     result["urdfPars"] = packageURDFs[childWorld]
