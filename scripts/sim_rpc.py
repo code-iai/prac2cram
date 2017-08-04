@@ -19,7 +19,7 @@ from tinyrpc import RPCClient
 import rospy
 import statecodes
 from prac2cram.msg import CRAMTick
-from prac2cram.srv import Prac2Cram
+from prac2cram.srv import Prac2Cram, CancelSim
 from p2c_rosaux import getROSTasks, getStringList
 
 portOffsNum = int(sys.argv[1])
