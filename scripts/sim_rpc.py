@@ -131,6 +131,16 @@ def onDone():
     notifyParentOfState(statecodes.SC_IDLE, "finished simulation.")
 
 @dispatcher.public
+def prac2cram_cancel_simulation():
+    rospy.wait_for_service('prac2cram/cancel_sim', timeout=5)
+    try:
+        prac2cramCancelSim = rospy.ServiceProxy('prac2cram/cancel_sim', CancelSim)
+        response = prac2cramCancelSim()
+        return {'status': response.status, 'result': response.result}
+    except rospy.ServiceException, e:
+        print "Service call failed with the following error: %s" %e
+
+@dispatcher.public
 def prac2cram_client(tasks_RPC):
     global simRunning, ownId, mongoProc
     if (True == simRunning):
