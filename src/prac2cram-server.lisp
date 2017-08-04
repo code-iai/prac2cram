@@ -106,7 +106,7 @@
                                              (apply plan-fn args))
                                            plan-fns plan-arg-fns args-list)
                                    (loop while (not (cpl:value should-cancel)) do
-                                     (cpl-impl:sleep 1)))
+                                     (cpl-impl:sleep* 1)))
                                  (when (cpl:value should-cancel)
                                    (when *cancel-function*
                                      (funcall *cancel-function*))
@@ -118,7 +118,7 @@
   (setf (cpl:value should-cancel) T)
 ;; TODO: add a cancelling timeout here
   (loop while (not (cpl:value has-cancelled)) do
-    (cpl:sleep 1))
+    (cpl:sleep* 1))
   (setf (cpl:value should-cancel) nil)
   (setf (cpl:value has-cancelled) nil)
   (roslisp:make-response :status 0
