@@ -126,7 +126,7 @@
       (roslisp:make-response :status 0
                              :result "AllOk"))
     (roslisp:make-response :status 0
-                           :result "Nothing to cancel, ok I guess."))
+                           :result "Nothing to cancel, ok I guess.")))
 
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
