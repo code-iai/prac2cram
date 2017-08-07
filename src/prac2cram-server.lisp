@@ -115,14 +115,18 @@
     (values started statuses messages plan-strings)))
 
 (roslisp:def-service-callback CancelSim ()
-  (setf (cpl:value should-cancel) T)
+  (if (cpl:value plan-running)
+    (progn
+      (setf (cpl:value should-cancel) T)
 ;; TODO: add a cancelling timeout here
-  (loop while (not (cpl:value has-cancelled)) do
-    (cpl:sleep* 1))
-  (setf (cpl:value should-cancel) nil)
-  (setf (cpl:value has-cancelled) nil)
-  (roslisp:make-response :status 0
-                         :result "AllOk"))
+      (loop while (not (cpl:value has-cancelled)) do
+        (cpl:sleep* 1))
+      (setf (cpl:value should-cancel) nil)
+      (setf (cpl:value has-cancelled) nil)
+      (roslisp:make-response :status 0
+                             :result "AllOk"))
+    (roslisp:make-response :status 0
+                           :result "Nothing to cancel, ok I guess."))
 
 (roslisp:def-service-callback Prac2Cram (tasks)
   (let* ((tasks (coerce tasks 'list)))
