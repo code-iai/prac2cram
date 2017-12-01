@@ -41,10 +41,12 @@ rpc_server = RPCServerGreenlets(
 )
 
 #This should be read out of some config info
-#childNums = (0, 1)
+#childNums = (1, 2)
+#childPackages = ('pizza_demo', 'pizza_demo')
+
 #childPackages = ('pizza_demo', 'prac_cs_demo')
 childNums = (1, 2, 3)
-childPackages = ('pizza_demo', 'prac_cs_demo', 'pizza_demo')
+childPackages = ('pizza_demo', 'pizza_demo', 'pizza_demo')
 packageActions = {'pizza_demo': ['Cutting'], 'prac_cs_demo': ['Pouring', 'Pipetting', 'UsingMeasuringCup']}
 packageURDFs = {'pizza_demo': [['robot_description_nocol', '', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
                                ['kitchen_description', 'iai_kitchen', 'http://svn.ai.uni-bremen.de/svn/sim_models/'],
