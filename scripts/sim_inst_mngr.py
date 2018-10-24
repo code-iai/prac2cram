@@ -207,7 +207,7 @@ def onBoot():
     #Roslaunch CRAM
     print "Starting CRAM ..."
     cramProc = subprocess.Popen('rosrun ' + packageName + ' start_cram.sh', stdout=None, shell=True, stderr=None, preexec_fn=os.setsid)
-    time.sleep(40)
+    time.sleep(220)
     print "              ... should be started."
     #Next watchdog loop will setup the idle state
     nState = statecodes.SC_IDLE
