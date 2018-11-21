@@ -27,6 +27,7 @@ add_service_files(
 add_message_files(
 
   FILES
+  KeyValue.msg
   ActionRole.msg
   ActionCore.msg
   CRAMTick.msg

@@ -5,7 +5,7 @@ import rospy
 # imports the service
 from prac2cram.srv import Prac2Cram
 # import the messages
-from prac2cram.msg import Task, ActionCore, ActionRole
+from prac2cram.msg import Task, ActionCore, ActionRole, KeyValue
 
 def getROSActionCores(action_cores_RPC):
   action_cores_ROS = []
@@ -14,11 +14,16 @@ def getROSActionCores(action_cores_RPC):
     action_core_ROS.action_core_name = action_core_RPC['action_core_name']
     action_core_ROS.action_roles = []
     for role_RPC in action_core_RPC['action_roles']:
-      role_ROS = ActionRole(role_name=role_RPC['role_name'], role_value=role_RPC['role_value'])
+      role_ROS = ActionRole()
+      role_ROS.role_name=role_RPC['role_name']
+      if isinstance(role_RPC['role_value'], str):
+          role_ROS.role_value=role_RPC['role_value']
+      elif isinstance(role_RPC['role_value'], dict):
+          role_ROS.role_values = []
+          for k, v in role_RPC['role_value'].items():
+              role_ROS.role_values.append(KeyValue(key=k, value=v))
       action_core_ROS.action_roles.append(role_ROS)
     action_cores_ROS.append(action_core_ROS)
-
-  
   return action_cores_ROS
 
 def getROSTasks(tasks_RPC):
