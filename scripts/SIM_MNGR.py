@@ -349,6 +349,7 @@ def prac2cram_client(command):
             nThread = Thread(target=childWatchdog, args=(childId,))
             nThread.setDaemon(True)
             nThread.start()
+        print "Sending tasks:" + str(tasksRPC)
         result = childRPCs[childId].prac2cram_client(tasksRPC)
         result["retcode"] = statecodes.retcodeName(result["retcode"])
         result["state"] = statecodes.stateName(result["state"])

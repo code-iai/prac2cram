@@ -193,6 +193,8 @@ def prac2cram_client(tasks_RPC):
             state = statecodes.SC_IDLE
             message = "Did not start simulation. See messages for reasons."
         messages = getStringList(response.messages)
+        messages.append("TASKS_RPC: " + str(tasks_RPC))
+        messages.append("TASKS_ROS: " + str(tasks_ROS))
         planstrings = getStringList(response.plan_strings)
     return {"status": status, "childId": ownId, "retcode": retcode, "state": state, "message": message, "messages": messages, "plan_strings": planstrings, "visualizationIP" : ROSBridgeAddress}
 

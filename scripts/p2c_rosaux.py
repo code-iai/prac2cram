@@ -18,6 +18,8 @@ def getROSActionCores(action_cores_RPC):
       role_ROS.role_name=role_RPC['role_name']
       if isinstance(role_RPC['role_value'], str):
           role_ROS.role_value=role_RPC['role_value']
+      elif isinstance(role_RPC['role_value'], unicode):
+          role_ROS.role_value=role_RPC['role_value'].encode('ascii', 'ignore')
       elif isinstance(role_RPC['role_value'], dict):
           role_ROS.role_values = []
           for k, v in role_RPC['role_value'].items():
